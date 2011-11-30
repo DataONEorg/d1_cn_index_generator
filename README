@@ -1,0 +1,10 @@
+DataONE CN Index Task Generator Lib
+------------------------
+
+This library provides index task generation for later consumption by index processor which will
+generate solr index update requests based on index tasks found in index task datastore (placed there
+by the index generator)
+
+See the test classes under src/test for example usage.
+
+See LICENSE.txt for the details of distributing this software.
