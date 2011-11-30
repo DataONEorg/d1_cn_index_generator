@@ -1,0 +1,28 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.dataone</groupId>
+  <artifactId>d1_cn_index_generator</artifactId>
+  <version>0.0.1-SNAPSHOT</version>
+  
+  	<properties>
+  		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  		<index_common_version>0.0.1-SNAPSHOT</index_common_version>
+  		<d1_common_version>1.0.1-SNAPSHOT</d1_common_version>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.dataone</groupId>
+			<artifactId>d1_cn_index_common</artifactId>
+			<version>${index_common_version}</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>org.dataone</groupId>
+			<artifactId>d1_common_java</artifactId>
+			<version>${d1_common_version}</version>
+			<scope>provided</scope>
+		</dependency>
+	</dependencies>
+  
+</project>
