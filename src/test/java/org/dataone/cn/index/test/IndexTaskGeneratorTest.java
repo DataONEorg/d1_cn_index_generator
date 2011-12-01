@@ -1,13 +1,17 @@
 package org.dataone.cn.index.test;
 
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.UUID;
 
+import org.apache.log4j.Logger;
 import org.dataone.cn.index.generator.IndexTaskGenerator;
 import org.dataone.cn.index.task.IndexTask;
 import org.dataone.cn.index.task.IndexTaskRepository;
+import org.dataone.service.types.v1.Checksum;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v1.ObjectFormatIdentifier;
+import org.dataone.service.types.v1.Subject;
 import org.dataone.service.types.v1.SystemMetadata;
 import org.junit.Assert;
 import org.junit.Test;
@@ -22,6 +26,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "test-context.xml" })
 public class IndexTaskGeneratorTest {
 
+    private static Logger logger = Logger.getLogger(IndexTaskGeneratorTest.class.getName());
+
     @Autowired
     private IndexTaskRepository repo;
 
@@ -34,29 +40,37 @@ public class IndexTaskGeneratorTest {
         Assert.assertNotNull(gen);
     }
 
-    // This test method is redundant to what is present in
-    // IndexTaskJpaRepositoryTest.
-    // Just sanity checking repo is working.
+    @Test
+    public void testDuplicateTask() {
+        String pidValue = "gen-test-duplicate-" + UUID.randomUUID().toString();
+        String formatValue = "CF-1.0";
+        SystemMetadata smd = buildTestSysMetaData(pidValue, formatValue);
+        IndexTask task = gen.processSystemMetaDataAdd(smd);
+        Long taskId = task.getId();
+        logger.info("***Dupe test, first id: " + taskId);
+        IndexTask task2 = gen.processSystemMetaDataAdd(smd);
+        Long task2Id = task2.getId();
+        logger.info("***Dupe test, second id: " + task2Id);
+        Assert.assertFalse(repo.exists(taskId));
+        Assert.assertNull(repo.findOne(taskId));
+        Assert.assertTrue(repo.exists(task2Id));
+        Assert.assertNotNull(repo.findOne(task2Id));
+    }
+
+    /**
+     * This simple test method is redundant to what is present in
+     * IndexTaskJpaRepositoryTest. Just sanity checking repo is working - ie
+     * mapping correctly
+     */
     @Test
     public void testRepoAddDelete() {
         IndexTask indexTask = new IndexTask();
-        indexTask.setPid("generated-task");
+        indexTask.setPid("repo task-" + UUID.randomUUID().toString());
         int initialSize = repo.findAll().size();
         repo.save(indexTask);
         Assert.assertEquals(initialSize + 1, repo.findAll().size());
         repo.delete(indexTask);
         Assert.assertEquals(initialSize, repo.findAll().size());
-    }
-
-    @Test
-    public void testAddTask() {
-        String pidValue = "task-test-built-" + UUID.randomUUID().toString();
-        String formatValue = "CF-1.0";
-        SystemMetadata smd = buildTestSysMetaData(pidValue, formatValue);
-        IndexTask task = gen.processSystemMetaDataUpdate(smd);
-        task = repo.findOne(task.getId());
-        Assert.assertEquals(0, pidValue.compareTo(task.getPid()));
-        Assert.assertEquals(0, formatValue.compareTo(task.getFormatId()));
     }
 
     private SystemMetadata buildTestSysMetaData(String pidValue, String formatValue) {
@@ -70,8 +84,22 @@ public class IndexTaskGeneratorTest {
         fmtid.setValue(formatValue);
         systemMetadata.setFormatId(fmtid);
 
+        systemMetadata.setSerialVersion(BigInteger.TEN);
+        systemMetadata.setSize(BigInteger.TEN);
+        Checksum checksum = new Checksum();
+        checksum.setValue("V29ybGQgSGVsbG8h");
+        checksum.setAlgorithm("SHA-1");
+        systemMetadata.setChecksum(checksum);
+
+        Subject rightsHolder = new Subject();
+        rightsHolder.setValue("DataONE");
+        systemMetadata.setRightsHolder(rightsHolder);
+
+        Subject submitter = new Subject();
+        submitter.setValue("Kermit de Frog");
+        systemMetadata.setSubmitter(submitter);
+
         systemMetadata.setDateSysMetadataModified(new Date());
         return systemMetadata;
     }
-
 }
