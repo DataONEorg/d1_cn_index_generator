@@ -2,12 +2,16 @@ package org.dataone.cn.index.generator;
 
 import java.util.List;
 
+import org.apache.log4j.Logger;
 import org.dataone.cn.index.task.IndexTask;
 import org.dataone.cn.index.task.IndexTaskRepository;
 import org.dataone.service.types.v1.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
 
 public class IndexTaskGenerator {
+
+    private static Logger logger = Logger.getLogger(IndexTaskGenerator.class.getName());
 
     @Autowired
     private IndexTaskRepository repo;
@@ -50,7 +54,12 @@ public class IndexTaskGenerator {
         List<IndexTask> itList = repo.findByPidAndStatus(smd.getIdentifier().getValue(),
                 IndexTask.STATUS_NEW);
         for (IndexTask indexTask : itList) {
-            repo.delete(indexTask);
+            try {
+                repo.delete(indexTask);
+            } catch (HibernateOptimisticLockingFailureException e) {
+                logger.debug("Unable to delete existing index task for pid: " + indexTask.getPid()
+                        + " prior to generating new index task.");
+            }
         }
     }
 }
