@@ -7,6 +7,11 @@
     	http://www.springframework.org/schema/context/spring-context-3.0.xsd">
  		
 	<import resource="classpath:task-index-context.xml"/>
+ 	
  	<bean id="indexTaskGenerator" class="org.dataone.cn.index.generator.IndexTaskGenerator" />
-
+ 	
+	<bean id="indexTaskGeneratorEntryListener" 
+		class="org.dataone.cn.index.generator.IndexTaskGeneratorEntryListener" />
+		
+	<bean id="indexTaskGeneratorDaemon" class="org.dataone.cn.index.generator.IndexTaskGeneratorDaemon"/>
 </beans>

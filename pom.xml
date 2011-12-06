@@ -8,6 +8,7 @@
   		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   		<index_common_version>0.0.1-SNAPSHOT</index_common_version>
   		<d1_common_version>1.0.1-SNAPSHOT</d1_common_version>
+  		<d1_cn_common_version>1.0.0-SNAPSHOT</d1_cn_common_version>
 	</properties>
 
 	<dependencies>
@@ -22,6 +23,17 @@
 			<artifactId>d1_common_java</artifactId>
 			<version>${d1_common_version}</version>
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.dataone</groupId>
+			<artifactId>d1_cn_common</artifactId>
+			<version>${d1_cn_common_version}</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>commons-daemon</groupId>
+			<artifactId>commons-daemon</artifactId>
+			<version>1.0.1</version>
 		</dependency>
 	</dependencies>
 

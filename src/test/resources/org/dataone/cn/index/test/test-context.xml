@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+	http://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <import resource="classpath:generator-context.xml"/>
     
@@ -9,4 +10,9 @@
     	 To test with postgres, comment out the following import 
 	-->
 	<import resource="classpath:hsql-datasource.xml" />
+	
+	<bean id="readSystemMetadataResource" class="org.springframework.core.io.ClassPathResource" >
+        <constructor-arg type="java.lang.String" value="org/dataone/cn/index/resources/samples/v1/systemMetadataSample.xml"/>
+        <qualifier value="readSystemMetadataResource"/>
+    </bean>
 </beans>

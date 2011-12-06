@@ -12,6 +12,7 @@ import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureExcep
 public class IndexTaskGenerator {
 
     private static Logger logger = Logger.getLogger(IndexTaskGenerator.class.getName());
+    private static final String IGNOREPID = "OBJECT_FORMAT_LIST.1.1";
 
     @Autowired
     private IndexTaskRepository repo;
@@ -22,9 +23,9 @@ public class IndexTaskGenerator {
      * @param SystemMetadata
      * @return IndexTask
      */
-    public IndexTask processSystemMetaDataAdd(SystemMetadata smd) {
+    public IndexTask processSystemMetaDataAdd(SystemMetadata smd, String objectPath) {
         removeDuplicateNewTasks(smd);
-        IndexTask task = new IndexTask(smd, null);
+        IndexTask task = new IndexTask(smd, objectPath);
         task.setAddPriority();
         repo.save(task);
         return task;
@@ -36,9 +37,9 @@ public class IndexTaskGenerator {
      * @param SystemMetadata
      * @return IndexTask
      */
-    public IndexTask processSystemMetaDataUpdate(SystemMetadata smd) {
+    public IndexTask processSystemMetaDataUpdate(SystemMetadata smd, String objectPath) {
         removeDuplicateNewTasks(smd);
-        IndexTask task = new IndexTask(smd, null);
+        IndexTask task = new IndexTask(smd, objectPath);
         task.setUpdatePriority();
         repo.save(task);
         return task;

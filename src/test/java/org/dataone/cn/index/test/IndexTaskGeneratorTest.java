@@ -45,10 +45,10 @@ public class IndexTaskGeneratorTest {
         String pidValue = "gen-test-duplicate-" + UUID.randomUUID().toString();
         String formatValue = "CF-1.0";
         SystemMetadata smd = buildTestSysMetaData(pidValue, formatValue);
-        IndexTask task = gen.processSystemMetaDataAdd(smd);
+        IndexTask task = gen.processSystemMetaDataAdd(smd, "test-obj-path");
         Long taskId = task.getId();
         logger.info("***Dupe test, first id: " + taskId);
-        IndexTask task2 = gen.processSystemMetaDataAdd(smd);
+        IndexTask task2 = gen.processSystemMetaDataAdd(smd, "test-obj-path");
         Long task2Id = task2.getId();
         logger.info("***Dupe test, second id: " + task2Id);
         Assert.assertFalse(repo.exists(taskId));
