@@ -11,8 +11,7 @@
 	-->
 	<import resource="classpath:hsql-datasource.xml" />
 	
-	<bean id="readSystemMetadataResource" class="org.springframework.core.io.ClassPathResource" >
+	<bean id="systemMetadataResource" class="org.springframework.core.io.ClassPathResource" >
         <constructor-arg type="java.lang.String" value="org/dataone/cn/index/resources/samples/v1/systemMetadataSample.xml"/>
-        <qualifier value="readSystemMetadataResource"/>
     </bean>
 </beans>

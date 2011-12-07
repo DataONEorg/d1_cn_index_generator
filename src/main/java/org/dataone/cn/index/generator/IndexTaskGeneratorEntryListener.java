@@ -29,7 +29,7 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
             "dataone.hazelcast.objectPath");
 
     private IMap<Identifier, SystemMetadata> systemMetadata;
-    private IMap<Identifier, String> objectPaths = null;
+    private IMap<Identifier, String> objectPaths;
 
     public IndexTaskGeneratorEntryListener() {
 
@@ -46,13 +46,14 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
     public void stop() {
         logger.info("stopping index task generator entry listener...");
         this.systemMetadata.removeEntryListener(this);
-        this.hzClient.getLifecycleService().shutdown();
     }
 
     @Override
     public void entryAdded(EntryEvent<Identifier, SystemMetadata> event) {
         logger.info("index task generator - added system metadata callback invoked...");
-        generator.processSystemMetaDataAdd(event.getValue(), getObjectPath(event));
+        if (event.getKey() != null && event.getValue() != null) {
+            generator.processSystemMetaDataAdd(event.getValue(), getObjectPath(event));
+        }
 
     }
 
@@ -63,7 +64,7 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
     }
 
     private String getObjectPath(EntryEvent<Identifier, SystemMetadata> event) {
-        return objectPaths.get(event.getKey().getValue());
+        return objectPaths.get(event.getKey());
     }
 
     @Override

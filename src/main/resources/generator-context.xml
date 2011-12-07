@@ -12,6 +12,4 @@
  	
 	<bean id="indexTaskGeneratorEntryListener" 
 		class="org.dataone.cn.index.generator.IndexTaskGeneratorEntryListener" />
-		
-	<bean id="indexTaskGeneratorDaemon" class="org.dataone.cn.index.generator.IndexTaskGeneratorDaemon"/>
 </beans>

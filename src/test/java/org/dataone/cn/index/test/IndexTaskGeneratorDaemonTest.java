@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.Resource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -28,15 +28,13 @@ import com.hazelcast.core.IMap;
 // context files are located from the root of the test's classpath
 // for example org/dataone/cn/index/test/
 @ContextConfiguration(locations = { "test-context.xml" })
-public class IndexTaskGeneratorEntryListenerTest {
+public class IndexTaskGeneratorDaemonTest {
 
-    private static Logger logger = Logger.getLogger(IndexTaskGeneratorEntryListenerTest.class
-            .getName());
+    private static Logger logger = Logger.getLogger(IndexTaskGeneratorDaemonTest.class.getName());
 
     private HazelcastInstance hzMember;
     private IMap<Identifier, SystemMetadata> sysMetaMap;
     private IMap<Identifier, String> objectPaths;
-    private Config hzConfig;
 
     private static final String systemMetadataMapName = Settings.getConfiguration().getString(
             "dataone.hazelcast.systemMetadata");
@@ -45,16 +43,12 @@ public class IndexTaskGeneratorEntryListenerTest {
             "dataone.hazelcast.objectPath");
 
     @Autowired
-    private IndexTaskGeneratorDaemon daemon;
-
-    @Autowired
-    @Qualifier("readSystemMetadataResource")
-    private org.springframework.core.io.Resource readSystemMetadataResource;
+    private Resource systemMetadataResource;
 
     @Before
     public void setUp() throws Exception {
 
-        hzConfig = new ClasspathXmlConfig("org/dataone/configuration/hazelcast.xml");
+        Config hzConfig = new ClasspathXmlConfig("org/dataone/configuration/hazelcast.xml");
 
         System.out.println("Hazelcast Group Config:\n" + hzConfig.getGroupConfig());
         System.out.print("Hazelcast Maps: ");
@@ -64,6 +58,9 @@ public class IndexTaskGeneratorEntryListenerTest {
         System.out.println();
         hzMember = Hazelcast.init(hzConfig);
         System.out.println("Hazelcast member hzMember name: " + hzMember.getName());
+
+        sysMetaMap = hzMember.getMap(systemMetadataMapName);
+        objectPaths = hzMember.getMap(objectPathName);
     }
 
     @After
@@ -78,26 +75,25 @@ public class IndexTaskGeneratorEntryListenerTest {
         SystemMetadata sysmeta = null;
         try {
             sysmeta = TypeMarshaller.unmarshalTypeFromStream(SystemMetadata.class,
-                    readSystemMetadataResource.getInputStream());
+                    systemMetadataResource.getInputStream());
         } catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
             fail("Test SystemMetadata misconfiguration - Exception " + ex);
         }
 
+        // creating this deamon instance from class loader overrides spring
+        // config for jpa repository so postgres is assumed.
+        IndexTaskGeneratorDaemon daemon = new IndexTaskGeneratorDaemon();
         try {
             daemon.start();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-
-        sysMetaMap = hzMember.getMap(systemMetadataMapName);
-
-        objectPaths = hzMember.getMap(objectPathName);
-
         sysMetaMap.putAsync(sysmeta.getIdentifier(), sysmeta);
         objectPaths.putAsync(sysmeta.getIdentifier(), "test gen listener object path");
 
         try {
+            // processing time
             Thread.sleep(10000);
         } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
