@@ -4,7 +4,7 @@ import static org.junit.Assert.fail;
 import junit.framework.Assert;
 
 import org.apache.log4j.Logger;
-import org.dataone.cn.index.generator.IndexTaskGeneratorDaemon;
+import org.dataone.cn.index.generator.IndexTaskGeneratorEntryListener;
 import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v1.SystemMetadata;
@@ -28,13 +28,17 @@ import com.hazelcast.core.IMap;
 // context files are located from the root of the test's classpath
 // for example org/dataone/cn/index/test/
 @ContextConfiguration(locations = { "test-context.xml" })
-public class IndexTaskGeneratorDaemonTest {
+public class IndexTaskGeneratorEntryListenerTest {
 
-    private static Logger logger = Logger.getLogger(IndexTaskGeneratorDaemonTest.class.getName());
+    private static Logger logger = Logger.getLogger(IndexTaskGeneratorEntryListenerTest.class
+            .getName());
 
     private HazelcastInstance hzMember;
     private IMap<Identifier, SystemMetadata> sysMetaMap;
     private IMap<Identifier, String> objectPaths;
+
+    @Autowired
+    IndexTaskGeneratorEntryListener listener;
 
     private static final String systemMetadataMapName = Settings.getConfiguration().getString(
             "dataone.hazelcast.systemMetadata");
@@ -69,7 +73,7 @@ public class IndexTaskGeneratorDaemonTest {
     }
 
     @Test
-    public void testCreateAndQueueTasks() {
+    public void testIndexTaskGeneration() {
 
         // create a new SystemMetadata object for testing
         SystemMetadata sysmeta = null;
@@ -81,11 +85,8 @@ public class IndexTaskGeneratorDaemonTest {
             fail("Test SystemMetadata misconfiguration - Exception " + ex);
         }
 
-        // creating this deamon instance from class loader overrides spring
-        // config for jpa repository so postgres is assumed.
-        IndexTaskGeneratorDaemon daemon = new IndexTaskGeneratorDaemon();
         try {
-            daemon.start();
+            listener.start();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
@@ -100,7 +101,7 @@ public class IndexTaskGeneratorDaemonTest {
         }
 
         try {
-            daemon.stop();
+            listener.stop();
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
