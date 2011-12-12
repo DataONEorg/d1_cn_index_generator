@@ -19,7 +19,7 @@ public class IndexTaskGeneratorDaemon implements Daemon {
     @Override
     public void start() throws Exception {
         logger.info("starting index task generator daemon...");
-        context = new ClassPathXmlApplicationContext("generator-context.xml");
+        context = new ClassPathXmlApplicationContext("generator-daemon-context.xml");
         listener = (IndexTaskGeneratorEntryListener) context
                 .getBean("indexTaskGeneratorEntryListener");
         listener.start();
