@@ -1,10 +1,19 @@
 DataONE CN Index Task Generator Lib
 ------------------------
 
-This library provides index task generation for later consumption by index processor which will
+This component provides index task generation for later consumption by index processor which will
 generate solr index update requests based on index tasks found in index task datastore (placed there
-by the index generator)
+by the index generator).  The index task items are generated based on updates to the CN stack's
+hazelcast systemMetadata map.  This component creates an entry listener on this map to trigger
+task creation.
 
-See the test classes under src/test for example usage.
+This project is a consummer of the IndexTask repository provided by cn_index_common component.  
+The generator's spring configuration (generator-context.xml) imports the index-task-context.xml to
+provide repository access.
+
+The production configuration context file (generator-daemon-context.xml) adds production references to
+external configuration including the jdbc.properties.
+
+See the test classes under src/test for example usage and test-context.xml for test runtime configuration.
 
 See LICENSE.txt for the details of distributing this software.
