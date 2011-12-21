@@ -50,8 +50,8 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
 
     @Override
     public void entryAdded(EntryEvent<Identifier, SystemMetadata> event) {
-        logger.info("index task generator - added system metadata callback invoked...");
         if (event.getKey() != null && event.getValue() != null) {
+            logger.info("index task generator - added system metadata callback invoked...");
             generator.processSystemMetaDataAdd(event.getValue(), getObjectPath(event));
         }
 
