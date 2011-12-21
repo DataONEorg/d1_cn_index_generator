@@ -24,11 +24,14 @@ public class IndexTaskGenerator {
      * @return IndexTask
      */
     public IndexTask processSystemMetaDataAdd(SystemMetadata smd, String objectPath) {
-        removeDuplicateNewTasks(smd);
-        IndexTask task = new IndexTask(smd, objectPath);
-        task.setAddPriority();
-        repo.save(task);
-        return task;
+        if (isNotIgnorePid(smd)) {
+            removeDuplicateNewTasks(smd);
+            IndexTask task = new IndexTask(smd, objectPath);
+            task.setAddPriority();
+            repo.save(task);
+            return task;
+        }
+        return null;
     }
 
     /**
@@ -38,11 +41,21 @@ public class IndexTaskGenerator {
      * @return IndexTask
      */
     public IndexTask processSystemMetaDataUpdate(SystemMetadata smd, String objectPath) {
-        removeDuplicateNewTasks(smd);
-        IndexTask task = new IndexTask(smd, objectPath);
-        task.setUpdatePriority();
-        repo.save(task);
-        return task;
+        if (isNotIgnorePid(smd)) {
+            removeDuplicateNewTasks(smd);
+            IndexTask task = new IndexTask(smd, objectPath);
+            task.setUpdatePriority();
+            repo.save(task);
+            return task;
+        }
+        return null;
+    }
+
+    private boolean isNotIgnorePid(SystemMetadata smd) {
+        if (IGNOREPID.equals(smd.getIdentifier().getValue())) {
+            return false;
+        }
+        return true;
     }
 
     /**
