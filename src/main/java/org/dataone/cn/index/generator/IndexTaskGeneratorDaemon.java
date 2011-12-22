@@ -37,4 +37,18 @@ public class IndexTaskGeneratorDaemon implements Daemon {
     public void init(DaemonContext arg0) throws Exception {
 
     }
+
+    // public static void main(String[] args) {
+    // IndexTaskGeneratorDaemon daemon = new IndexTaskGeneratorDaemon();
+    // try {
+    // daemon.start();
+    // } catch (Exception e) {
+    // e.printStackTrace();
+    // try {
+    // daemon.stop();
+    // } catch (Exception e1) {
+    // e1.printStackTrace();
+    // }
+    // }
+    // }
 }

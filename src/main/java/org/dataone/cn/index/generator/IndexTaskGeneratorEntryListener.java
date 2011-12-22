@@ -37,10 +37,16 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
 
     public void start() {
         logger.info("starting index task generator entry listener...");
+        logger.info("System Metadata value: " + HZ_SYSTEM_METADATA);
+        logger.info("Object path value: " + HZ_OBJECT_PATH);
+
         this.hzClient = HazelcastClientInstance.getHazelcastClient();
         this.systemMetadata = this.hzClient.getMap(HZ_SYSTEM_METADATA);
         this.objectPaths = this.hzClient.getMap(HZ_OBJECT_PATH);
         this.systemMetadata.addEntryListener(this, true);
+
+        logger.info("System Metadata size: " + this.systemMetadata.size());
+        logger.info("Object path size:" + this.objectPaths.size());
     }
 
     public void stop() {
@@ -50,6 +56,7 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
 
     @Override
     public void entryAdded(EntryEvent<Identifier, SystemMetadata> event) {
+        logger.info("index task generator - entry added invoked.");
         if (event.getKey() != null && event.getValue() != null) {
             logger.info("index task generator - added system metadata callback invoked...");
             generator.processSystemMetaDataAdd(event.getValue(), getObjectPath(event));
