@@ -55,19 +55,27 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
     }
 
     @Override
-    public void entryAdded(EntryEvent<Identifier, SystemMetadata> event) {
-        logger.info("index task generator - entry added invoked.");
-        if (event.getKey() != null && event.getValue() != null) {
-            logger.info("index task generator - added system metadata callback invoked...");
-            generator.processSystemMetaDataAdd(event.getValue(), getObjectPath(event));
-        }
-
+    public void entryUpdated(EntryEvent<Identifier, SystemMetadata> event) {
+        logger.info("UPDATE EVENT - index task generator - system metadata callback invoked on pid: "
+                + event.getKey().getValue());
+        generator.processSystemMetaDataUpdate(event.getValue(), getObjectPath(event));
     }
 
     @Override
-    public void entryUpdated(EntryEvent<Identifier, SystemMetadata> event) {
-        logger.info("index task generator - updated system metadata callback invoked...");
-        generator.processSystemMetaDataUpdate(event.getValue(), getObjectPath(event));
+    public void entryAdded(EntryEvent<Identifier, SystemMetadata> event) {
+        if (event.getKey() != null && event.getValue() != null) {
+            logger.info("ADD EVENT - index task generator - system metadata callback invoked on pid: "
+                    + event.getKey().getValue());
+            SystemMetadata smd = event.getValue();
+            if (smd.getSerialVersion().longValue() > 1) {
+                logger.info("Add event for pid: " + event.getKey().getValue()
+                        + " determined to be invalid due to serial version: "
+                        + smd.getSerialVersion().longValue() + ".  skipping add index task.");
+            } else {
+                logger.info("Processing add event index task for pid: " + event.getKey().getValue());
+                generator.processSystemMetaDataAdd(event.getValue(), getObjectPath(event));
+            }
+        }
     }
 
     private String getObjectPath(EntryEvent<Identifier, SystemMetadata> event) {
