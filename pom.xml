@@ -7,12 +7,12 @@
   	<properties>
   		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   		<index_common_version>0.0.1-SNAPSHOT</index_common_version>
-  		<d1_common_version>1.0.1-SNAPSHOT</d1_common_version>
+  		<d1_common_version>1.0.1-RC1</d1_common_version>
   		<d1_cn_common_version>1.0.0-SNAPSHOT</d1_cn_common_version>
   		<spring.version>3.1.0.RELEASE</spring.version>
   		<hazelcast.version>1.9.4.5</hazelcast.version>
 	</properties>
-
+	
 	<dependencies>
 		<dependency>
 			<groupId>org.dataone</groupId>
@@ -261,5 +261,15 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+	<repository>
+		<id>dataone.org</id>
+		<url>http://dev-testing.dataone.org/maven</url>
+		<releases>
+		    <enabled>true</enabled>
+		</releases>
+		<snapshots>
+		    <enabled>true</enabled>
+		</snapshots>
+	</repository>
 	</repositories>
 </project>
