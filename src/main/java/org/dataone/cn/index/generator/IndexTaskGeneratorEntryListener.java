@@ -7,9 +7,9 @@ import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v1.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.EntryListener;
-import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 
 public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier, SystemMetadata> {
@@ -20,7 +20,7 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
     @Autowired
     private IndexTaskGenerator generator;
 
-    private HazelcastInstance hzClient;
+    private HazelcastClient hzClient;
 
     private static final String HZ_SYSTEM_METADATA = Settings.getConfiguration().getString(
             "dataone.hazelcast.systemMetadata");
