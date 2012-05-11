@@ -31,21 +31,33 @@ import org.dataone.service.types.v1.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
 
+/**
+ * IndexTaskGenerator is a strategy implementation for index processing to
+ * handle updates and additions to the distributed system meta data map which
+ * trigger the necessity to update the search index. This update to the search
+ * index is represented by a new IndexTask instance.
+ * 
+ * @author sroseboo
+ * 
+ */
 public class IndexTaskGenerator {
 
-    private static Logger logger = Logger.getLogger(IndexTaskGenerator.class.getName());
+    private static Logger logger = Logger.getLogger(IndexTaskGenerator.class
+            .getName());
     private static final String IGNOREPID = "OBJECT_FORMAT_LIST.1.1";
 
     @Autowired
     private IndexTaskRepository repo;
 
     /**
-     * Entry point for hzCast systemMetadata map item added event listener
+     * Call when system metadata add events are detected, to trigger new
+     * IndexTask instance generation.
      * 
      * @param SystemMetadata
      * @return IndexTask
      */
-    public IndexTask processSystemMetaDataAdd(SystemMetadata smd, String objectPath) {
+    public IndexTask processSystemMetaDataAdd(SystemMetadata smd,
+            String objectPath) {
         if (isNotIgnorePid(smd)) {
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -57,12 +69,14 @@ public class IndexTaskGenerator {
     }
 
     /**
-     * Entry point for hzCast systemMetadata map item updated event listener.
+     * Call when system metadata update events are detected, to trigger new
+     * IndexTask instance generation.
      * 
      * @param SystemMetadata
      * @return IndexTask
      */
-    public IndexTask processSystemMetaDataUpdate(SystemMetadata smd, String objectPath) {
+    public IndexTask processSystemMetaDataUpdate(SystemMetadata smd,
+            String objectPath) {
         if (isNotIgnorePid(smd)) {
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -87,13 +101,14 @@ public class IndexTaskGenerator {
      * @param SystemMetadata
      */
     private void removeDuplicateNewTasks(SystemMetadata smd) {
-        List<IndexTask> itList = repo.findByPidAndStatus(smd.getIdentifier().getValue(),
-                IndexTask.STATUS_NEW);
+        List<IndexTask> itList = repo.findByPidAndStatus(smd.getIdentifier()
+                .getValue(), IndexTask.STATUS_NEW);
         for (IndexTask indexTask : itList) {
             try {
                 repo.delete(indexTask);
             } catch (HibernateOptimisticLockingFailureException e) {
-                logger.debug("Unable to delete existing index task for pid: " + indexTask.getPid()
+                logger.debug("Unable to delete existing index task for pid: "
+                        + indexTask.getPid()
                         + " prior to generating new index task.");
             }
         }

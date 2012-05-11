@@ -27,6 +27,14 @@ import org.apache.commons.daemon.DaemonContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+/**
+ * An implementation of apache.commons.daemon.Daemon interface. Allows this
+ * class to be registered as a daemon process controlled with apache jsvc
+ * service for *nix systems.
+ * 
+ * @author sroseboo
+ * 
+ */
 public class IndexTaskGeneratorDaemon implements Daemon {
 
     private ApplicationContext context;
@@ -35,26 +43,42 @@ public class IndexTaskGeneratorDaemon implements Daemon {
     public IndexTaskGeneratorDaemon() {
     }
 
+    /**
+     * Daemon interface specified method. Called when the daemon service
+     * wrapping this class is started. Loads a new spring application process
+     * and starts an IndexTaskGeneratorEntryListener.
+     */
     @Override
     public void start() throws Exception {
         System.out.println("starting index task generator daemon...");
-        context = new ClassPathXmlApplicationContext("generator-daemon-context.xml");
+        context = new ClassPathXmlApplicationContext(
+                "generator-daemon-context.xml");
         listener = (IndexTaskGeneratorEntryListener) context
                 .getBean("indexTaskGeneratorEntryListener");
         listener.start();
     }
 
+    /**
+     * Daemon interface specified method. Called when the daemon service is
+     * stopping this class. Calls stop() on the IndexTaskGeneratorListener.
+     */
     @Override
     public void stop() throws Exception {
         System.out.println("stopping index task generator daemon...");
         listener.stop();
     }
 
+    /**
+     * Daemon interface specified method. No behavior in this class, unused.
+     */
     @Override
     public void destroy() {
 
     }
 
+    /**
+     * Daemon interface specified method. No behavior in this class, unused.
+     */
     @Override
     public void init(DaemonContext arg0) throws Exception {
 
