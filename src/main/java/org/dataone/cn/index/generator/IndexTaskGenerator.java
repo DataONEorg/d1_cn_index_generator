@@ -42,8 +42,7 @@ import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureExcep
  */
 public class IndexTaskGenerator {
 
-    private static Logger logger = Logger.getLogger(IndexTaskGenerator.class
-            .getName());
+    private static Logger logger = Logger.getLogger(IndexTaskGenerator.class.getName());
     private static final String IGNOREPID = "OBJECT_FORMAT_LIST.1.1";
 
     @Autowired
@@ -56,8 +55,7 @@ public class IndexTaskGenerator {
      * @param SystemMetadata
      * @return IndexTask
      */
-    public IndexTask processSystemMetaDataAdd(SystemMetadata smd,
-            String objectPath) {
+    public IndexTask processSystemMetaDataAdd(SystemMetadata smd, String objectPath) {
         if (isNotIgnorePid(smd)) {
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -75,8 +73,7 @@ public class IndexTaskGenerator {
      * @param SystemMetadata
      * @return IndexTask
      */
-    public IndexTask processSystemMetaDataUpdate(SystemMetadata smd,
-            String objectPath) {
+    public IndexTask processSystemMetaDataUpdate(SystemMetadata smd, String objectPath) {
         if (isNotIgnorePid(smd)) {
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -101,14 +98,18 @@ public class IndexTaskGenerator {
      * @param SystemMetadata
      */
     private void removeDuplicateNewTasks(SystemMetadata smd) {
-        List<IndexTask> itList = repo.findByPidAndStatus(smd.getIdentifier()
-                .getValue(), IndexTask.STATUS_NEW);
+        removeDuplicateTasksByStatus(smd, IndexTask.STATUS_NEW);
+        // new update on this pid, so remove failure and try to reprocess.
+        removeDuplicateTasksByStatus(smd, IndexTask.STATUS_FAILED);
+    }
+
+    private void removeDuplicateTasksByStatus(SystemMetadata smd, String status) {
+        List<IndexTask> itList = repo.findByPidAndStatus(smd.getIdentifier().getValue(), status);
         for (IndexTask indexTask : itList) {
             try {
                 repo.delete(indexTask);
             } catch (HibernateOptimisticLockingFailureException e) {
-                logger.debug("Unable to delete existing index task for pid: "
-                        + indexTask.getPid()
+                logger.debug("Unable to delete existing index task for pid: " + indexTask.getPid()
                         + " prior to generating new index task.");
             }
         }
