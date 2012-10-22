@@ -42,8 +42,7 @@ import com.hazelcast.core.IMap;
  * @author sroseboo
  * 
  */
-public class IndexTaskGeneratorEntryListener implements
-        EntryListener<Identifier, SystemMetadata> {
+public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier, SystemMetadata> {
 
     private static Logger logger = Logger
             .getLogger(IndexTaskGeneratorEntryListener.class.getName());
@@ -53,11 +52,11 @@ public class IndexTaskGeneratorEntryListener implements
 
     private HazelcastClient hzClient;
 
-    private static final String HZ_SYSTEM_METADATA = Settings
-            .getConfiguration().getString("dataone.hazelcast.systemMetadata");
+    private static final String HZ_SYSTEM_METADATA = Settings.getConfiguration().getString(
+            "dataone.hazelcast.systemMetadata");
 
-    private static final String HZ_OBJECT_PATH = Settings.getConfiguration()
-            .getString("dataone.hazelcast.objectPath");
+    private static final String HZ_OBJECT_PATH = Settings.getConfiguration().getString(
+            "dataone.hazelcast.objectPath");
 
     private IMap<Identifier, SystemMetadata> systemMetadata;
     private IMap<Identifier, String> objectPaths;
@@ -93,15 +92,14 @@ public class IndexTaskGeneratorEntryListener implements
 
     /**
      * EntryListener interface method. Invoked when an entry is updated in
-     * system metadata map. Delgates IndexTask creation behavior to
+     * system metadata map. Delegates IndexTask creation behavior to
      * IndexTaskGenerator.
      */
     @Override
     public void entryUpdated(EntryEvent<Identifier, SystemMetadata> event) {
         logger.info("UPDATE EVENT - index task generator - system metadata callback invoked on pid: "
                 + event.getKey().getValue());
-        generator.processSystemMetaDataUpdate(event.getValue(),
-                getObjectPath(event));
+        generator.processSystemMetaDataUpdate(event.getValue(), getObjectPath(event));
     }
 
     /**
@@ -118,13 +116,10 @@ public class IndexTaskGeneratorEntryListener implements
             if (smd.getSerialVersion().longValue() > 1) {
                 logger.info("Add event for pid: " + event.getKey().getValue()
                         + " determined to be invalid due to serial version: "
-                        + smd.getSerialVersion().longValue()
-                        + ".  skipping add index task.");
+                        + smd.getSerialVersion().longValue() + ".  skipping add index task.");
             } else {
-                logger.info("Processing add event index task for pid: "
-                        + event.getKey().getValue());
-                generator.processSystemMetaDataAdd(event.getValue(),
-                        getObjectPath(event));
+                logger.info("Processing add event index task for pid: " + event.getKey().getValue());
+                generator.processSystemMetaDataAdd(event.getValue(), getObjectPath(event));
             }
         }
     }
