@@ -23,7 +23,7 @@
 package org.dataone.cn.index.generator;
 
 import org.apache.log4j.Logger;
-import org.dataone.cn.hazelcast.HazelcastClientInstance;
+import org.dataone.cn.hazelcast.HazelcastClientFactory;
 import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v1.SystemMetadata;
@@ -73,7 +73,7 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
         logger.info("System Metadata value: " + HZ_SYSTEM_METADATA);
         logger.info("Object path value: " + HZ_OBJECT_PATH);
 
-        this.hzClient = HazelcastClientInstance.getHazelcastClient();
+        this.hzClient = HazelcastClientFactory.getStorageClient();
         this.systemMetadata = this.hzClient.getMap(HZ_SYSTEM_METADATA);
         this.objectPaths = this.hzClient.getMap(HZ_OBJECT_PATH);
         this.systemMetadata.addEntryListener(this, true);
