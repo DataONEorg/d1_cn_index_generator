@@ -173,7 +173,6 @@
 	</dependencies>
 
 	<build>
-		<finalName>d1_index_task_generator_daemon</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -209,6 +208,8 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                           	<outputFile>${basedir}/target/d1_index_task_generator_daemon.jar</outputFile>
+                            <outputDirectory>${basedir}</outputDirectory>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
