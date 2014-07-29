@@ -29,7 +29,7 @@ import org.apache.log4j.Logger;
 import org.dataone.cn.index.generator.IndexTaskGeneratorEntryListener;
 import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
-import org.dataone.service.types.v1.SystemMetadata;
+import org.dataone.service.types.v2.SystemMetadata;
 import org.dataone.service.util.TypeMarshaller;
 import org.junit.After;
 import org.junit.Before;

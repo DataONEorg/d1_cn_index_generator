@@ -26,7 +26,7 @@ import org.apache.log4j.Logger;
 import org.dataone.cn.hazelcast.HazelcastClientFactory;
 import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
-import org.dataone.service.types.v1.SystemMetadata;
+import org.dataone.service.types.v2.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.hazelcast.client.HazelcastClient;
