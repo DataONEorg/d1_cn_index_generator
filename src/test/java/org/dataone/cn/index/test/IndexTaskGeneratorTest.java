@@ -89,7 +89,7 @@ public class IndexTaskGeneratorTest {
         IndexTask indexTask = new IndexTask();
         indexTask.setPid("repo task-" + UUID.randomUUID().toString());
         int initialSize = repo.findAll().size();
-        repo.save(indexTask);
+        indexTask = repo.save(indexTask);
         Assert.assertEquals(initialSize + 1, repo.findAll().size());
         repo.delete(indexTask);
         Assert.assertEquals(initialSize, repo.findAll().size());
