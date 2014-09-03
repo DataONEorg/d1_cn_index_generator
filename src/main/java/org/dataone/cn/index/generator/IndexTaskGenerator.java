@@ -60,7 +60,7 @@ public class IndexTaskGenerator {
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
             task.setAddPriority();
-            repo.save(task);
+            task = repo.save(task);
             return task;
         }
         return null;
@@ -78,7 +78,7 @@ public class IndexTaskGenerator {
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
             task.setUpdatePriority();
-            repo.save(task);
+            task = repo.save(task);
             return task;
         }
         return null;
