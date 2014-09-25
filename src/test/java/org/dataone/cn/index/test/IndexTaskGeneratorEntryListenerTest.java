@@ -23,10 +23,15 @@
 package org.dataone.cn.index.test;
 
 import static org.junit.Assert.fail;
+
+import java.util.List;
+
 import junit.framework.Assert;
 
 import org.apache.log4j.Logger;
 import org.dataone.cn.index.generator.IndexTaskGeneratorEntryListener;
+import org.dataone.cn.index.task.IndexTask;
+import org.dataone.cn.index.task.IndexTaskRepository;
 import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v2.SystemMetadata;
@@ -54,19 +59,21 @@ public class IndexTaskGeneratorEntryListenerTest {
 
     private static Logger logger = Logger.getLogger(IndexTaskGeneratorEntryListenerTest.class
             .getName());
+    private static final String systemMetadataMapName = Settings.getConfiguration().getString(
+            "dataone.hazelcast.systemMetadata");
+
+    private static final String objectPathName = Settings.getConfiguration().getString(
+            "dataone.hazelcast.objectPath");
 
     private HazelcastInstance hzMember;
     private IMap<Identifier, SystemMetadata> sysMetaMap;
     private IMap<Identifier, String> objectPaths;
 
     @Autowired
-    IndexTaskGeneratorEntryListener listener;
+    private IndexTaskGeneratorEntryListener listener;
 
-    private static final String systemMetadataMapName = Settings.getConfiguration().getString(
-            "dataone.hazelcast.systemMetadata");
-
-    private static final String objectPathName = Settings.getConfiguration().getString(
-            "dataone.hazelcast.objectPath");
+    @Autowired
+    private IndexTaskRepository repo;
 
     @Autowired
     private Resource systemMetadataResource;
@@ -121,8 +128,20 @@ public class IndexTaskGeneratorEntryListenerTest {
             } catch (InterruptedException e) {
                 logger.error(e.getMessage(), e);
             }
+            Assert.assertTrue("repo size after add should be 1.",
+                    repo.findByPid(sysmeta.getIdentifier().getValue()).size() == 1);
         }
         sysMetaMap.remove(sysmeta.getIdentifier());
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            logger.error(e.getMessage(), e);
+        }
+        List<IndexTask> results = repo.findByPid(sysmeta.getIdentifier().getValue());
+        Assert.assertTrue("repo size after add should be 1.", results.size() == 1);
+        IndexTask task = results.get(0);
+        Assert.assertTrue("task should be delete task",
+                task.isDeleted() == true == task.isDeleteTask());
 
         try {
             // processing time
