@@ -84,6 +84,24 @@ public class IndexTaskGenerator {
         return null;
     }
 
+    /**
+     * Call when system metadata remove events are detected, to trigger new
+     * IndexTask instance generation to represent the removal of an item from the index.
+     * 
+     * @param SystemMetadata
+     * @return IndexTask
+     */
+    public IndexTask processSystemMetaDataDelete(SystemMetadata smd) {
+        if (isNotIgnorePid(smd)) {
+            removeDuplicateNewTasks(smd);
+            IndexTask task = new IndexTask(smd, null);
+            task.setDeleted(true);
+            task = repo.save(task);
+            return task;
+        }
+        return null;
+    }
+
     private boolean isNotIgnorePid(SystemMetadata smd) {
         if (IGNOREPID.equals(smd.getIdentifier().getValue())) {
             return false;

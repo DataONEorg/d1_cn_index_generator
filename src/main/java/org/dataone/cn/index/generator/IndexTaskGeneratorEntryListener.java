@@ -137,11 +137,15 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
     }
 
     /**
-     * EntryListener interface method for entry removed events. Unused in this
-     * class. No behavior.
+     * EntryListener interface method. Invoked when an entry is removed/deleted from the
+     * system metadata map. Delegates IndexTask creation behavior to
+     * IndexTaskGenerator.
      */
     @Override
-    public void entryRemoved(EntryEvent<Identifier, SystemMetadata> arg0) {
+    public void entryRemoved(EntryEvent<Identifier, SystemMetadata> event) {
+        logger.info("REMOVE EVENT - index task generator - system metadata callback invoked on pid: "
+                + event.getKey().getValue());
+        generator.processSystemMetaDataDelete(event.getValue());
     }
 
 }

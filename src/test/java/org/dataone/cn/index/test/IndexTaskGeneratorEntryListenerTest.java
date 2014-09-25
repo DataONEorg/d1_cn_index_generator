@@ -112,12 +112,17 @@ public class IndexTaskGeneratorEntryListenerTest {
         } catch (Exception e) {
             logger.error(e.getMessage(), e);
         }
-        sysMetaMap.putAsync(sysmeta.getIdentifier(), sysmeta);
+
         objectPaths.putAsync(sysmeta.getIdentifier(), "test gen listener object path");
+        sysMetaMap.put(sysmeta.getIdentifier(), sysmeta);
+
+        System.out.println("contains key: " + sysMetaMap.containsKey(sysmeta.getIdentifier()));
+
+        sysMetaMap.remove(sysmeta.getIdentifier());
 
         try {
             // processing time
-            Thread.sleep(10000);
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             logger.error(e.getMessage(), e);
         }
