@@ -51,8 +51,7 @@ public class IndexTaskGeneratorDaemon implements Daemon {
     @Override
     public void start() throws Exception {
         System.out.println("starting index task generator daemon...");
-        context = new ClassPathXmlApplicationContext(
-                "generator-daemon-context.xml");
+        context = new ClassPathXmlApplicationContext("generator-daemon-context.xml");
         listener = (IndexTaskGeneratorEntryListener) context
                 .getBean("indexTaskGeneratorEntryListener");
         listener.start();
@@ -84,17 +83,4 @@ public class IndexTaskGeneratorDaemon implements Daemon {
 
     }
 
-    // public static void main(String[] args) {
-    // IndexTaskGeneratorDaemon daemon = new IndexTaskGeneratorDaemon();
-    // try {
-    // daemon.start();
-    // } catch (Exception e) {
-    // e.printStackTrace();
-    // try {
-    // daemon.stop();
-    // } catch (Exception e1) {
-    // e1.printStackTrace();
-    // }
-    // }
-    // }
 }
