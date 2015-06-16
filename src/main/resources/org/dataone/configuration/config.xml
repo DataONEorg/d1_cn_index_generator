@@ -2,4 +2,5 @@
 <!-- Apache Commons Configuration -->
 <configuration>
 	<properties fileName="index-generator.properties"/>
+	<properties fileName="file:/etc/dataone/index/d1client.properties" />
 </configuration>
