@@ -24,12 +24,10 @@ package org.dataone.cn.index.generator;
 
 import org.apache.log4j.Logger;
 import org.dataone.cn.hazelcast.HazelcastClientFactory;
-import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v2.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.EntryListener;
 import com.hazelcast.core.IMap;
@@ -50,14 +48,6 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
     @Autowired
     private IndexTaskGenerator generator;
 
-    private HazelcastClient hzClient;
-
-    private static final String HZ_SYSTEM_METADATA = Settings.getConfiguration().getString(
-            "dataone.hazelcast.systemMetadata");
-
-    private static final String HZ_OBJECT_PATH = Settings.getConfiguration().getString(
-            "dataone.hazelcast.objectPath");
-
     private IMap<Identifier, SystemMetadata> systemMetadata;
     private IMap<Identifier, String> objectPaths;
 
@@ -70,12 +60,9 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
      */
     public void start() {
         logger.info("starting index task generator entry listener...");
-        logger.info("System Metadata value: " + HZ_SYSTEM_METADATA);
-        logger.info("Object path value: " + HZ_OBJECT_PATH);
 
-        this.hzClient = HazelcastClientFactory.getStorageClient();
-        this.systemMetadata = this.hzClient.getMap(HZ_SYSTEM_METADATA);
-        this.objectPaths = this.hzClient.getMap(HZ_OBJECT_PATH);
+        this.systemMetadata = HazelcastClientFactory.getSystemMetadataMap();
+        this.objectPaths = HazelcastClientFactory.getObjectPathMap();
         this.systemMetadata.addEntryListener(this, true);
 
         logger.info("System Metadata size: " + this.systemMetadata.size());
