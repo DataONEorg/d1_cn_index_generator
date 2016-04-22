@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.dataone.cn.index.task.IndexTask;
 import org.dataone.cn.index.task.IndexTaskRepository;
+import org.dataone.cn.index.util.PerformanceLogger;
 import org.dataone.service.types.v2.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
@@ -44,6 +45,7 @@ public class IndexTaskGenerator {
 
     private static Logger logger = Logger.getLogger(IndexTaskGenerator.class.getName());
     private static final String IGNOREPID = "OBJECT_FORMAT_LIST.1.1";
+    private static PerformanceLogger perfLog = PerformanceLogger.getInstance();
 
     @Autowired
     private IndexTaskRepository repo;
@@ -57,10 +59,16 @@ public class IndexTaskGenerator {
      */
     public IndexTask processSystemMetaDataAdd(SystemMetadata smd, String objectPath) {
         if (isNotIgnorePid(smd)) {
+            long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
             task.setAddPriority();
             task = repo.save(task);
+            String id = "Unknow";
+            if(smd != null && smd.getIdentifier() != null) {
+                id = smd.getIdentifier().getValue();
+            }
+            perfLog.log("IdexTaskGenerator.processSystemMetaDataAdd add a adding task for id "+id, System.currentTimeMillis() - start);
             return task;
         }
         return null;
@@ -75,10 +83,16 @@ public class IndexTaskGenerator {
      */
     public IndexTask processSystemMetaDataUpdate(SystemMetadata smd, String objectPath) {
         if (isNotIgnorePid(smd)) {
+            long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
             task.setUpdatePriority();
             task = repo.save(task);
+            String id = "Unknow";
+            if(smd != null && smd.getIdentifier() != null) {
+                id = smd.getIdentifier().getValue();
+            }
+            perfLog.log("IdexTaskGenerator.processSystemMetaDataUpdate add a updating task for id "+id, System.currentTimeMillis() - start);
             return task;
         }
         return null;
@@ -93,10 +107,16 @@ public class IndexTaskGenerator {
      */
     public IndexTask processSystemMetaDataDelete(SystemMetadata smd) {
         if (isNotIgnorePid(smd)) {
+            long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, null);
             task.setDeleted(true);
             task = repo.save(task);
+            String id = "Unknow";
+            if(smd != null && smd.getIdentifier() != null) {
+                id = smd.getIdentifier().getValue();
+            }
+            perfLog.log("IdexTaskGenerator.processSystemMetaDataUpdate add a deleting task for id "+id, System.currentTimeMillis() - start);
             return task;
         }
         return null;
