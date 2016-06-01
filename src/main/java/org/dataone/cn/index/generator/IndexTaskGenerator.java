@@ -25,6 +25,7 @@ package org.dataone.cn.index.generator;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.dataone.cn.index.task.IgnoringIndexIdPool;
 import org.dataone.cn.index.task.IndexTask;
 import org.dataone.cn.index.task.IndexTaskRepository;
 import org.dataone.cn.index.util.PerformanceLogger;
@@ -44,7 +45,7 @@ import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureExcep
 public class IndexTaskGenerator {
 
     private static Logger logger = Logger.getLogger(IndexTaskGenerator.class.getName());
-    private static final String IGNOREPID = "OBJECT_FORMAT_LIST.1.1";
+    //private static final String IGNOREPID = "OBJECT_FORMAT_LIST.1.1";
     private static PerformanceLogger perfLog = PerformanceLogger.getInstance();
 
     @Autowired
@@ -58,7 +59,7 @@ public class IndexTaskGenerator {
      * @return IndexTask
      */
     public IndexTask processSystemMetaDataAdd(SystemMetadata smd, String objectPath) {
-        if (isNotIgnorePid(smd)) {
+        if (IgnoringIndexIdPool.isNotIgnorePid(smd)) {
             long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -82,7 +83,7 @@ public class IndexTaskGenerator {
      * @return IndexTask
      */
     public IndexTask processSystemMetaDataUpdate(SystemMetadata smd, String objectPath) {
-        if (isNotIgnorePid(smd)) {
+        if (IgnoringIndexIdPool.isNotIgnorePid(smd)) {
             long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -106,7 +107,7 @@ public class IndexTaskGenerator {
      * @return IndexTask
      */
     public IndexTask processSystemMetaDataDelete(SystemMetadata smd) {
-        if (isNotIgnorePid(smd)) {
+        if (IgnoringIndexIdPool.isNotIgnorePid(smd)) {
             long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, null);
@@ -122,12 +123,12 @@ public class IndexTaskGenerator {
         return null;
     }
 
-    private boolean isNotIgnorePid(SystemMetadata smd) {
+    /*private boolean isNotIgnorePid(SystemMetadata smd) {
         if (IGNOREPID.equals(smd.getIdentifier().getValue())) {
             return false;
         }
         return true;
-    }
+    }*/
 
     /**
      * Find unprocessed (new) tasks and remove. Will be replaced by new version
