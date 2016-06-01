@@ -29,6 +29,7 @@ import org.dataone.cn.index.task.IgnoringIndexIdPool;
 import org.dataone.cn.index.task.IndexTask;
 import org.dataone.cn.index.task.IndexTaskRepository;
 import org.dataone.cn.index.util.PerformanceLogger;
+import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v2.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
@@ -152,5 +153,28 @@ public class IndexTaskGenerator {
                         + " prior to generating new index task.");
             }
         }
+    }
+    
+    /**
+     * If an index task exists with the new or failed status for the given id
+     * @param id
+     * @return true if the index task with new or failed status exists; otherwise false.
+     */
+    public boolean newOrFailedIndexTaskExists(Identifier id) {
+        boolean exist=false;
+        if(id != null && id.getValue()!= null) {
+            List<IndexTask> itList = repo.findByPidAndStatus(id.getValue(), IndexTask.STATUS_NEW);
+            if(itList != null && itList.isEmpty()) {
+                exist = true;
+            }
+            if(!exist) {
+                itList = repo.findByPidAndStatus(id.getValue(), IndexTask.STATUS_FAILED);
+                if(itList != null && itList.isEmpty()) {
+                    exist = true;
+                }
+            }
+        }
+        
+        return exist;
     }
 }
