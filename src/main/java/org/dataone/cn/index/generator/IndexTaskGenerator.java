@@ -155,26 +155,5 @@ public class IndexTaskGenerator {
         }
     }
     
-    /**
-     * If an index task exists with the new or failed status for the given id
-     * @param id
-     * @return true if the index task with new or failed status exists; otherwise false.
-     */
-    public boolean newOrFailedIndexTaskExists(Identifier id) {
-        boolean exist=false;
-        if(id != null && id.getValue()!= null) {
-            List<IndexTask> itList = repo.findByPidAndStatus(id.getValue(), IndexTask.STATUS_NEW);
-            if(itList != null && itList.isEmpty()) {
-                exist = true;
-            }
-            if(!exist) {
-                itList = repo.findByPidAndStatus(id.getValue(), IndexTask.STATUS_FAILED);
-                if(itList != null && itList.isEmpty()) {
-                    exist = true;
-                }
-            }
-        }
-        
-        return exist;
-    }
+ 
 }

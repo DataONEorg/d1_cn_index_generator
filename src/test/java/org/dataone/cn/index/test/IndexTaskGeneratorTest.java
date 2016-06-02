@@ -95,27 +95,7 @@ public class IndexTaskGeneratorTest {
         Assert.assertEquals(initialSize, repo.findAll().size());
     }
     
-    @Test
-    public void testNewOrFailedIndexTaskExists() {
-        IndexTask indexTask = new IndexTask();
-        String id = "repo task-" + UUID.randomUUID().toString();
-        Identifier pid = new Identifier();
-        pid.setValue(id);
-        indexTask.setPid(id);
-        int initialSize = repo.findAll().size();
-        indexTask = repo.save(indexTask);
-        Assert.assertTrue(gen.newOrFailedIndexTaskExists(pid));
-        repo.delete(indexTask);
-        
-        indexTask = new IndexTask();
-        id = "repo task-" + UUID.randomUUID().toString();
-        pid = new Identifier();
-        pid.setValue(id);
-        indexTask.setPid(id);
-        indexTask.setStatus(IndexTask.STATUS_FAILED);
-        Assert.assertTrue(gen.newOrFailedIndexTaskExists(pid));
-        repo.delete(indexTask);
-    }
+   
 
     private SystemMetadata buildTestSysMetaData(String pidValue, String formatValue) {
         SystemMetadata systemMetadata = new SystemMetadata();
