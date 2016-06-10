@@ -2,15 +2,15 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.dataone</groupId>
   <artifactId>d1_cn_index_generator</artifactId>
-  <version>2.1.1</version>
+  <version>2.2.0</version>
 	<name>DataONE Index Task Generator</name>
   <description>DataONE Index Task Generator creates index task items as a result of activity on the cn node stack as detected by a hz event listener to the hz backed system metadata distributed map.</description>
   
   	<properties>
   		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  		<index_common_version>2.1.1</index_common_version>
-  		<d1_common_version>2.1.0</d1_common_version>
-  		<d1_cn_common_version>2.1.0</d1_cn_common_version>
+  		<index_common_version>2.2.0</index_common_version>
+  		<d1_common_version>2.2.0</d1_common_version>
+  		<d1_cn_common_version>2.2.0</d1_cn_common_version>
   		<spring.version>3.1.4.RELEASE</spring.version>
   		<hazelcast.version>2.4.1</hazelcast.version>
 	</properties>
