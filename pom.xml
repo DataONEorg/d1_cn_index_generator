@@ -6,7 +6,8 @@
 	<name>DataONE Index Task Generator</name>
   <description>DataONE Index Task Generator creates index task items as a result of activity on the cn node stack as detected by a hz event listener to the hz backed system metadata distributed map.</description>
   
-  	<properties>
+  <properties>
+      <compiler.target.version>1.7</compiler.target.version>
   		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   		<d1_cn_index_common.version>2.3.0-SNAPSHOT</d1_cn_index_common.version>
   		<d1_common_java.version>2.3.0-SNAPSHOT</d1_common_java.version>
@@ -183,7 +184,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>1.7</source>
-                    <target>1.7</target>
+                    <target>${compiler.target.version}</target>
                 </configuration>
             </plugin>
             <plugin>
