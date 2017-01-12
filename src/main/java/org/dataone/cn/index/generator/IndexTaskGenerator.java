@@ -118,7 +118,7 @@ public class IndexTaskGenerator {
             if(smd != null && smd.getIdentifier() != null) {
                 id = smd.getIdentifier().getValue();
             }
-            perfLog.log("IdexTaskGenerator.processSystemMetaDataUpdate add a deleting task for id "+id, System.currentTimeMillis() - start);
+            perfLog.log("IndexTaskGenerator.processSystemMetaDataUpdate add a deleting task for id "+id, System.currentTimeMillis() - start);
             return task;
         }
         return null;
@@ -132,8 +132,8 @@ public class IndexTaskGenerator {
     }*/
 
     /**
-     * Find unprocessed (new) tasks and remove. Will be replaced by new version
-     * of the task
+     * Find unprocessed (new or failed) tasks and remove. Will (eventually) be replaced by new version
+     * of the task.
      * 
      * @param SystemMetadata
      */
@@ -143,13 +143,20 @@ public class IndexTaskGenerator {
         removeDuplicateTasksByStatus(smd, IndexTask.STATUS_FAILED);
     }
 
+    
+    // XXX: removing tasks by PID doesn't necessarily stop those tasks from getting
+    // processed, or being permanently removed from the table.  IndexTaskProcessor 
+    // grabs the entire NEW list and holds those tasks in a list for processing 
+    // indefinitely, and updating their status (from NEW to IN_PROCESS to FAILED),
+    // So even though the task with that ID is deleted, it will be saved back to 
+    // the repository and there will be duplicate tasks with same PID but different IDs.
     private void removeDuplicateTasksByStatus(SystemMetadata smd, String status) {
         List<IndexTask> itList = repo.findByPidAndStatus(smd.getIdentifier().getValue(), status);
         for (IndexTask indexTask : itList) {
             try {
                 repo.delete(indexTask);
             } catch (HibernateOptimisticLockingFailureException e) {
-                logger.debug("Unable to delete existing index task for pid: " + indexTask.getPid()
+                logger.warn("Unable to delete existing index task for pid: " + indexTask.getPid()
                         + " prior to generating new index task.");
             }
         }
