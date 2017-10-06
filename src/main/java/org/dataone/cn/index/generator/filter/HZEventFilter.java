@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v1.NodeReference;
 import org.dataone.service.types.v1.Replica;
@@ -45,10 +46,15 @@ import org.w3c.dom.NodeList;
  */
 public class HZEventFilter {
     private static Logger logger = Logger.getLogger(HZEventFilter.class);
+    private static String INDEX_EVENT_FILTERING_ACTIVE = "IndexEvent.filtering.active";
+    
+    
     /**
      * Here is the algorithm:
      * 1. Fetching the solr index for the pid. 
-     * 2. If there is no solr index for the pid, check the archive flag in the system metadata. If the archive=true, filter this pid out; if the archive=false, keep this pid (return false).
+     * 2. If there is no solr index for the pid, 
+     *    2.1 check the archive flag in the system metadata. If the archive=true, filter this pid out
+     *    2.2  if the archive=false, keep this pid (return false).
      * 3. If there is a solr index, compare the modification date between the solr index and the system metadata.
      *    3.1 if sysmeta > solr index, return false (keep index)
      *    3.2 if sysmeta < solr index, return true (filter it out)
@@ -60,96 +66,134 @@ public class HZEventFilter {
      * @return true if we don't need to index it (filter out)
      */
     public boolean filter(SystemMetadata sysmeta) {
-        boolean needFilterOut = true; // please don't change the default value here.
+        boolean needFilterOut = true; 
         Identifier pid = sysmeta.getIdentifier();
-        String queryUrl = null;
-        Document solrDoc = getSolrReponse(queryUrl);
-        Vector<String> id = getValues(solrDoc, "");
-        if(id.isEmpty()) {
-            //no slor doc
-            boolean archive = sysmeta.getArchived();
-            if(archive) {
-                //this is an archived object and there is no solr doc either. All set! We don't need index it.
-                logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+" is an archived object and the SOLR server doesn't have the record either. So this event has been filtered out for indexing (no indexing).");
-                needFilterOut = true;
+        boolean enableFiltering = Settings.getConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
+        if(enableFiltering) {
+            String queryUrl = null;
+            Document solrDoc = getSolrReponse(queryUrl); //step 1
+            Vector<String> id = getValues(solrDoc, "");
+            if(id.isEmpty()) { //step 2
+                //no slor doc
+                boolean archive = sysmeta.getArchived();
+                if(archive) {
+                    //2.1
+                    //this is an archived object and there is no solr doc either. All set! We don't need index it.
+                    logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+" is an archived object and the SOLR server doesn't have the record either. So this event has been filtered out for indexing (no indexing).");
+                    needFilterOut = true;
+                } else {
+                    //2.2
+                    logger.info("HZEventFilter.filter - the system metadata  for the index event shows shows "+pid.getValue()+" is not an archived object but the SOLR server doesn't have the record. So this event should be granted for indexing.");
+                    needFilterOut = false;
+                }
             } else {
-                logger.info("HZEventFilter.filter - the system metadata  for the index event shows shows "+pid.getValue()+" is not an archived object but the SOLR server doesn't have the record. So this event should be granted for indexing.");
-                needFilterOut = false;
+                Date sysDate = sysmeta.getDateSysMetadataModified();
+                Date solrDate = getModificationDateInSolr(solrDoc);
+                if(sysDate.getTime() > solrDate.getTime()) {
+                    //3.1
+                    logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                            " having a newer version than the SOLR server. So this event should be granted for indexing.");
+                    needFilterOut = false;
+                } else if (sysDate.getTime() < solrDate.getTime()) {
+                    //3.2
+                    logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                            " having an older version than the SOLR server. So this event has been filtered out for indexing (no indexing).");
+                    needFilterOut = true;
+                } else {
+                    //3.3
+                    // the modification date equals. we need to compare replicas
+                   List<Replica> sysReplicas = sysmeta.getReplicaList();
+                   List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
+                   boolean equal = compareRaplicaList(pid, sysReplicas, solrReplicas);
+                   if(equal) {
+                       //3.3.1
+                       logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                               " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
+                      needFilterOut = true;
+                   } else {
+                       //3.3.2
+                       logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                               " having the same modification date as the SOLR server. However, they have different replica lists. So this event should be granted for indexing.");
+                       needFilterOut = false;
+                   }
+                }
             }
         } else {
-            Date sysDate = sysmeta.getDateSysMetadataModified();
-            Date solrDate = getModificationDateInSolr(solrDoc);
-            if(sysDate.getTime() > solrDate.getTime()) {
-                logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                        " having a newer version than the SOLR server. So this event should be granted for indexing.");
-                needFilterOut = false;
-            } else if (sysDate.getTime() < solrDate.getTime()) {
-                logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                        " having an older version than the SOLR server. So this event has been filtered out for indexing (no indexing).");
-                needFilterOut = true;
-            } else {
-                // the modification date equals. we need to compare replicas
-               List<Replica> sysReplicas = sysmeta.getReplicaList();
-               List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
-               if(sysReplicas != null ) {
-                   if(sysReplicas.size() != solrReplicas.size()) {
-                       //system metaddata and solr have different replica size. We need to indexing.
-                       logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+" having the same modification date as the SOLR server. But they have diffrerent size of the replica list. So this event should be granted for indexing.");
-                       needFilterOut = false;
-                   } else {
-                       //compare the replica lists. If there is not match, the needFilterOut will be set to false. Otherwise (everything matching), it will keep true value.
-                       outerloop:
-                       for(Replica sysReplica : sysReplicas) {
-                           boolean found = false;
-                           boolean haveDifferentVerificationDate = false;
-                           NodeReference sysNode = sysReplica.getReplicaMemberNode();
-                           Date sysConfirmDate = sysReplica.getReplicaVerified();
-                           for(Replica solrReplica : solrReplicas) {
-                               NodeReference solrNode = sysReplica.getReplicaMemberNode();
-                               Date solrConfirmDate = sysReplica.getReplicaVerified();
-                               if(sysNode.equals(solrNode)) {
-                                   found = true;
-                                   if(sysConfirmDate.getTime() != solrConfirmDate.getTime()) {
-                                     //they have the different verification date. We need to index
-                                       haveDifferentVerificationDate = true;
-                                   } 
-                               }
-                               
-                               if(found && haveDifferentVerificationDate) {
-                                   // we found the node but has different verification date. We need to break the loop (ignore others) and grant the event
-                                   //system metaddata has an empty replica list but solr doesn't. We need to indexing.
-                                   logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+" having the same modification date as the SOLR server. But at least one of the replica has different verified date. So this event should be granted for indexing.");
-                                   needFilterOut = false;
-                                   break outerloop;
-                               }
-                           }
-                           if(!found) {
-                               logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+" having the same modification date as the SOLR server. But at least one of the replica in system metadata can't be found on solr. So this event should be granted for indexing.");
-                               needFilterOut = false;
-                               break;
-                           }
-                       }
-                       
-                       if((needFilterOut)) {
-                            //we found that everything match in replica list. So we should filter the event (no indexing)
-                           //this block is only for log information
-                           logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                                   " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
-                       }
-                   }
-               } else if(solrReplicas.isEmpty()) {
-                   //both slor and system metadata has an empty replica list. we should filter out this even, so no indexing.
-                   logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                           " having the same modification date as the SOLR server. Also both have an emply replica list. So this event has been filtered out for indexing (no indexing).");
-                   needFilterOut = true;
-               } else {
-                   //system metaddata has an empty replica list but solr doesn't. We need to indexing.
-                   logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+" having the same modification date as the SOLR server. But the system metadata for the event has an empty replica list while the solr doesn't. So this event should be granted for indexing.");
-                   needFilterOut = false;
-               }
-            }
+            logger.info("HZEventFilter.filter - The filter was disable by setting IndexEvent.filtering.active=false. So the index event for "+pid.getValue()+" should be granted for indexing.");
+            needFilterOut = false;
         }
         return needFilterOut;
+    }
+    
+    
+    /**
+     * Compare two replica list from system metadata and slor doc. The one from solr doc should be null, but it can be empty.
+     * Since the solr doc only have the replica name and verified date, we only compare those two items.
+     * @param pid
+     * @param sysReplicas
+     * @param solrReplicas
+     * @return true if the replicat lists are the same.
+     */
+    boolean compareRaplicaList(Identifier pid, List<Replica> sysReplicas, List<Replica> solrReplicas) {
+        boolean equal = true;
+        if(sysReplicas != null ) {
+            if(sysReplicas.size() != solrReplicas.size()) {
+                //system metaddata and solr have different replica size. We need to indexing.
+                logger.debug("HZEventFilter.compareRaplicaList - the system metadata for the index event hows "+pid.getValue()+" having diffrerent size of the replica list to the solr doc. Not the same");
+                equal = false;
+            } else {
+                //compare the replica lists. If there is not match, the needFilterOut will be set to false. Otherwise (everything matching), it will keep true value.
+                outerloop:
+                for(Replica sysReplica : sysReplicas) {
+                    boolean found = false;
+                    boolean haveDifferentVerificationDate = false;
+                    NodeReference sysNode = sysReplica.getReplicaMemberNode();
+                    Date sysConfirmDate = sysReplica.getReplicaVerified();
+                    for(Replica solrReplica : solrReplicas) {
+                        NodeReference solrNode = sysReplica.getReplicaMemberNode();
+                        Date solrConfirmDate = sysReplica.getReplicaVerified();
+                        if(sysNode.equals(solrNode)) {
+                            found = true;
+                            if(sysConfirmDate.getTime() != solrConfirmDate.getTime()) {
+                              //they have the different verification date. We need to index
+                                haveDifferentVerificationDate = true;
+                            } 
+                        }
+                        
+                        if(found && haveDifferentVerificationDate) {
+                            // we found the node but has different verification date. We need to break the loop (ignore others) and grant the event
+                            //system metaddata has an empty replica list but solr doesn't. We need to indexing.
+                            logger.debug("HZEventFilter.compareReplicaList - the system metadata for the index event shows "+pid.getValue()+" having at least one of the replica has different verified date to solr doc. Not the same.");
+                            equal = false;
+                            break outerloop;
+                        }
+                    }
+                    if(!found) {
+                        logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+" having at least one of the replica which can't be found on the solr doc. Not the same.");
+                        equal = false;
+                        break;
+                    }
+                }
+                
+                if((equal)) {
+                     //we found that everything match in replica list. So we should filter the event (no indexing)
+                    //this block is only for log information
+                    logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+
+                            " having the same replica list as the solr doc.");
+                    equal = true;
+                }
+            }
+        } else if(solrReplicas.isEmpty()) {
+            //both slor and system metadata has an empty replica list. we should filter out this even, so no indexing.
+            logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+
+                    " having  an emply replica list. So does the solr doc.Same.");
+            equal = true;
+        } else {
+            //system metaddata has an empty replica list but solr doesn't. We need to indexing.
+            logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+" having an empty replica list while the solr doesn't.Not same.");
+            equal = false;
+        }
+        return equal;
     }
     
     
