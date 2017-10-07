@@ -21,21 +21,28 @@
  */
 package org.dataone.cn.index.generator.filter;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Vector;
 
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
 import org.dataone.configuration.Settings;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v1.NodeReference;
 import org.dataone.service.types.v1.Replica;
 import org.dataone.service.types.v2.SystemMetadata;
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+
 
 /**
  * Currently the index generator is listening the events of the systemmetadata map in hazelcast. Those add, delete and 
@@ -47,7 +54,19 @@ import org.w3c.dom.NodeList;
 public class HZEventFilter {
     private static Logger logger = Logger.getLogger(HZEventFilter.class);
     private static String INDEX_EVENT_FILTERING_ACTIVE = "IndexEvent.filtering.active";
+    private static String ID = "id";
+    private static String DATEMODIFIED = "dateModified";
+    private static String REPLICAMN = "replicaMN";
+    private static String REPLICAVERIFIEDATE = "replicaVerifiedDate";
+    private static int FIRSTSOLRDOCINDEX = 0;
+
+    private String solrBaseURL = null;
+
     
+    public HZEventFilter() {
+        solrBaseURL = Settings.getConfiguration().getString("solr.base.uri", "http://localhost:8983/solr/search_core");
+        logger.info("HZEvetFilter.constructor - the base url is "+solrBaseURL);
+    }
     
     /**
      * Here is the algorithm:
@@ -70,53 +89,57 @@ public class HZEventFilter {
         Identifier pid = sysmeta.getIdentifier();
         boolean enableFiltering = Settings.getConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
         if(enableFiltering) {
-            String queryUrl = null;
-            Document solrDoc = getSolrReponse(queryUrl); //step 1
-            Vector<String> id = getValues(solrDoc, "");
-            if(id.isEmpty()) { //step 2
-                //no slor doc
-                boolean archive = sysmeta.getArchived();
-                if(archive) {
-                    //2.1
-                    //this is an archived object and there is no solr doc either. All set! We don't need index it.
-                    logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+" is an archived object and the SOLR server doesn't have the record either. So this event has been filtered out for indexing (no indexing).");
-                    needFilterOut = true;
+            try {
+                String queryUrl = null;
+                SolrDocument solrDoc = getSolrReponse(queryUrl); //step 1
+                String id = getId(solrDoc);
+                if(id == null) { //step 2
+                    //no slor doc
+                    boolean archive = sysmeta.getArchived();
+                    if(archive) {
+                        //2.1
+                        //this is an archived object and there is no solr doc either. All set! We don't need index it.
+                        logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+" is an archived object and the SOLR server doesn't have the record either. So this event has been filtered out for indexing (no indexing).");
+                        needFilterOut = true;
+                    } else {
+                        //2.2
+                        logger.info("HZEventFilter.filter - the system metadata  for the index event shows shows "+pid.getValue()+" is not an archived object but the SOLR server doesn't have the record. So this event should be granted for indexing.");
+                        needFilterOut = false;
+                    }
                 } else {
-                    //2.2
-                    logger.info("HZEventFilter.filter - the system metadata  for the index event shows shows "+pid.getValue()+" is not an archived object but the SOLR server doesn't have the record. So this event should be granted for indexing.");
-                    needFilterOut = false;
+                    Date sysDate = sysmeta.getDateSysMetadataModified();
+                    Date solrDate = getModificationDateInSolr(solrDoc);
+                    if(sysDate.getTime() > solrDate.getTime()) {
+                        //3.1
+                        logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                " having a newer version than the SOLR server. So this event should be granted for indexing.");
+                        needFilterOut = false;
+                    } else if (sysDate.getTime() < solrDate.getTime()) {
+                        //3.2
+                        logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                " having an older version than the SOLR server. So this event has been filtered out for indexing (no indexing).");
+                        needFilterOut = true;
+                    } else {
+                        //3.3
+                        // the modification date equals. we need to compare replicas
+                       List<Replica> sysReplicas = sysmeta.getReplicaList();
+                       List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
+                       boolean equal = compareRaplicaList(pid, sysReplicas, solrReplicas);
+                       if(equal) {
+                           //3.3.1
+                           logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                                   " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
+                          needFilterOut = true;
+                       } else {
+                           //3.3.2
+                           logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                                   " having the same modification date as the SOLR server. However, they have different replica lists. So this event should be granted for indexing.");
+                           needFilterOut = false;
+                       }
+                    }
                 }
-            } else {
-                Date sysDate = sysmeta.getDateSysMetadataModified();
-                Date solrDate = getModificationDateInSolr(solrDoc);
-                if(sysDate.getTime() > solrDate.getTime()) {
-                    //3.1
-                    logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                            " having a newer version than the SOLR server. So this event should be granted for indexing.");
-                    needFilterOut = false;
-                } else if (sysDate.getTime() < solrDate.getTime()) {
-                    //3.2
-                    logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                            " having an older version than the SOLR server. So this event has been filtered out for indexing (no indexing).");
-                    needFilterOut = true;
-                } else {
-                    //3.3
-                    // the modification date equals. we need to compare replicas
-                   List<Replica> sysReplicas = sysmeta.getReplicaList();
-                   List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
-                   boolean equal = compareRaplicaList(pid, sysReplicas, solrReplicas);
-                   if(equal) {
-                       //3.3.1
-                       logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
-                               " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
-                      needFilterOut = true;
-                   } else {
-                       //3.3.2
-                       logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
-                               " having the same modification date as the SOLR server. However, they have different replica lists. So this event should be granted for indexing.");
-                       needFilterOut = false;
-                   }
-                }
+            } catch (Exception e) {
+                
             }
         } else {
             logger.info("HZEventFilter.filter - The filter was disable by setting IndexEvent.filtering.active=false. So the index event for "+pid.getValue()+" should be granted for indexing.");
@@ -202,35 +225,79 @@ public class HZEventFilter {
      * @param doc
      * @return an empty list if there is no replica information
      */
-    List<Replica>  getReplicasInSolr(Document doc) {
+    List<Replica>  getReplicasInSolr(SolrDocument doc) {
         List<Replica> replicas = new ArrayList<Replica>();
         return replicas;
     }
     
-    Date getModificationDateInSolr(Document doc) {
+    /**
+     * Get the modified date from solr doc.
+     * @param doc
+     * @return null if no modified date was found
+     */
+    Date getModificationDateInSolr(SolrDocument doc) {
         Date date = null;
+        Collection<Object> values =  getValues(doc, DATEMODIFIED);
+        if (values != null) {
+            for (Object obj : values) {
+                date = (Date) obj;
+                break;//get first element
+            }
+        }
         return date;
+    }
+    
+    /**
+     * Get the value of id
+     * @param doc
+     * @return null if no id was found. This means no solr doc was found.
+     */
+    String getId(SolrDocument doc) {
+        String id = null;
+        return id;
     }
     
     /**
      * Query the document by a given path query
      * @param doc
-     * @param pathQuery
-     * @return an empty vector if this no match
+     * @param fieldName
+     * @return null if no values was found.
      */
-    Vector<String> getValues(Document doc, String pathQuery) {
-        Vector<String> values = new Vector<String> ();
-        return values;
+    Collection<Object> getValues(SolrDocument doc, String fieldName) {
+        Collection<Object> fieldValues = null;
+        if(doc != null) {
+            fieldValues = doc.getFieldValues(fieldName);
+            /*for(Object obj : fieldValues) {
+                System.out.println("The class of object is "+obj.getClass().getCanonicalName()+" and value is "+obj);
+            }*/
+        }  
+        return fieldValues;
     }
     
     /**
      * Query solr to get the response
      * @param url
      * @return
+     * @throws IOException 
+     * @throws SolrServerException 
      */
-     Document getSolrReponse(String url) {
-        Document result = null;
-        return result;
+     SolrDocument getSolrReponse(String id) throws SolrServerException, IOException {
+        SolrDocument document = new SolrDocument();
+        String filter = ID+":"+id;
+        //System.out.println("the filter is "+filter);
+        SolrQuery query = new SolrQuery(filter);
+        query.setFields(ID,DATEMODIFIED, REPLICAMN, REPLICAVERIFIEDATE);
+        query.setStart(0);
+        SolrClient client = new HttpSolrClient(solrBaseURL);
+        QueryResponse response = client.query(query);
+        SolrDocumentList results = response.getResults();
+        System.out.println("the size of result is "+results.size());
+        if(results.size() >0) {
+            document = results.get(FIRSTSOLRDOCINDEX);
+        }
+        //System.out.println("the solr document is "+document);
+        client.close();
+        return document;
         
     }
 }
