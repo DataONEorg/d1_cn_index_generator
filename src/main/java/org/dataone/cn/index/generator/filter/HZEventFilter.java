@@ -254,6 +254,13 @@ public class HZEventFilter {
      */
     String getId(SolrDocument doc) {
         String id = null;
+        Collection<Object> values =  getValues(doc, ID);
+        if (values != null) {
+            for (Object obj : values) {
+                id = (String) obj;
+                break;//get first element
+            }
+        }
         return id;
     }
     
@@ -291,7 +298,7 @@ public class HZEventFilter {
         SolrClient client = new HttpSolrClient(solrBaseURL);
         QueryResponse response = client.query(query);
         SolrDocumentList results = response.getResults();
-        System.out.println("the size of result is "+results.size());
+        //System.out.println("the size of result is "+results.size());
         if(results.size() >0) {
             document = results.get(FIRSTSOLRDOCINDEX);
         }
