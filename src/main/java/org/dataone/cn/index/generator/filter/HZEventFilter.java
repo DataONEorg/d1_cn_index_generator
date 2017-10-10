@@ -225,8 +225,38 @@ public class HZEventFilter {
      * @param doc
      * @return an empty list if there is no replica information
      */
-    List<Replica>  getReplicasInSolr(SolrDocument doc) {
+    List<Replica>  getReplicasInSolr(SolrDocument doc) throws Exception {
         List<Replica> replicas = new ArrayList<Replica>();
+        Collection<Object> mns =  getValues(doc, REPLICAMN); //the implementation class is ArrayList. So the order can be prserved.
+        //System.out.println("==============The class name of collection is "+mns.getClass().getCanonicalName());
+        Collection<Object> verifiedDates =  getValues(doc, REPLICAVERIFIEDATE);
+        //System.out.println("==============The class name of collection is "+verifiedDates.getClass().getCanonicalName());
+        if((mns == null && verifiedDates != null) || (mns != null && verifiedDates == null) ) {
+            throw new Exception("The number of the repicat nodes doesn't match the one of the verified date in the solr document");
+        } else if (mns != null && verifiedDates != null) {
+            if(mns.size() != verifiedDates.size()) {
+                throw new Exception("The number of the repicat nodes doesn't match the one of the verified date in the solr document");
+            } else {
+                Object[] mnsArray = mns.toArray();
+                Object[] verifiedDatesArray = verifiedDates.toArray();
+                for(int i=0; i<mnsArray.length; i++) {
+                    Object mnObj = mnsArray[i];
+                    Object dateObj = verifiedDatesArray[i];
+                    String mnStr = (String) mnObj;
+                    System.out.println("HZEventFilter.getReplicaInSor - the node id of the replica is "+mnStr);
+                    Date date = (Date)dateObj;
+                    System.out.println("HZEventFilter.getReplicaInSor - the verified date of the replica with id "+mnStr +" is "+date);
+                    NodeReference mn = new NodeReference();
+                    mn.setValue(mnStr);
+                    Replica replica = new Replica();
+                    replica.setReplicaMemberNode(mn);
+                    replica.setReplicaVerified(date);
+                    replicas.add(replica);
+                }
+                
+               
+            }
+        }
         return replicas;
     }
     
@@ -290,8 +320,9 @@ public class HZEventFilter {
      */
      SolrDocument getSolrReponse(String id) throws SolrServerException, IOException {
         SolrDocument document = new SolrDocument();
+        id = escapeQueryChars(id);
         String filter = ID+":"+id;
-        //System.out.println("the filter is "+filter);
+        System.out.println("the filter is "+filter);
         SolrQuery query = new SolrQuery(filter);
         query.setFields(ID,DATEMODIFIED, REPLICAMN, REPLICAVERIFIEDATE);
         query.setStart(0);
@@ -307,4 +338,25 @@ public class HZEventFilter {
         return document;
         
     }
+    
+    /**
+     * Escape special characters in the query.
+     * @param s
+     * @return
+     */
+    private static String escapeQueryChars(String s) {
+         StringBuilder sb = new StringBuilder();
+         for (int i = 0; i < s.length(); i++) {
+             char c = s.charAt(i);
+             // These characters are part of the query syntax and must be escaped
+             if (c == '\\' || c == '+' || c == '-' || c == '!' || c == '(' || c == ')' || c == ':'
+                     || c == '^' || c == '[' || c == ']' || c == '\"' || c == '{' || c == '}'
+                     || c == '~' || c == '*' || c == '?' || c == '|' || c == '&' || c == ';'
+                     || Character.isWhitespace(c)) {
+                 sb.append('\\');
+             }
+             sb.append(c);
+         }
+         return sb.toString();
+     }
 }
