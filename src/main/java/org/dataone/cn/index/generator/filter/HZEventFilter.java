@@ -139,7 +139,9 @@ public class HZEventFilter {
                     }
                 }
             } catch (Exception e) {
-                
+                logger.warn("HZEventFilter.filter - there was an exception in comparing the solr record for "+pid.getValue()+
+                        " to its system metadata. However, this event still should be granted for indexing for safe.", e);
+                needFilterOut = false;
             }
         } else {
             logger.info("HZEventFilter.filter - The filter was disable by setting IndexEvent.filtering.active=false. So the index event for "+pid.getValue()+" should be granted for indexing.");
@@ -232,10 +234,10 @@ public class HZEventFilter {
         Collection<Object> verifiedDates =  getValues(doc, REPLICAVERIFIEDATE);
         //System.out.println("==============The class name of collection is "+verifiedDates.getClass().getCanonicalName());
         if((mns == null && verifiedDates != null) || (mns != null && verifiedDates == null) ) {
-            throw new Exception("The number of the repicat nodes doesn't match the one of the verified date in the solr document");
+            throw new Exception("The number of the repicat nodes doesn't match the number of the verified date in the solr document. There is an issue on the solr doc.");
         } else if (mns != null && verifiedDates != null) {
             if(mns.size() != verifiedDates.size()) {
-                throw new Exception("The number of the repicat nodes doesn't match the one of the verified date in the solr document");
+                throw new Exception("The number of the repicat nodes doesn't match the number of the verified date in the solr document");
             } else {
                 Object[] mnsArray = mns.toArray();
                 Object[] verifiedDatesArray = verifiedDates.toArray();
@@ -243,9 +245,12 @@ public class HZEventFilter {
                     Object mnObj = mnsArray[i];
                     Object dateObj = verifiedDatesArray[i];
                     String mnStr = (String) mnObj;
-                    System.out.println("HZEventFilter.getReplicaInSor - the node id of the replica is "+mnStr);
                     Date date = (Date)dateObj;
-                    System.out.println("HZEventFilter.getReplicaInSor - the verified date of the replica with id "+mnStr +" is "+date);
+                    if(mnStr== null || mnStr.trim().equals("") || date == null) {
+                        throw new Exception("The replication information about the memeber node id or the verfidate date shouldn't be null or blank in the solr document.");
+                    }
+                    logger.debug("HZEventFilter.getReplicaInSor - the node id of the replica is "+mnStr);
+                    logger.debug("HZEventFilter.getReplicaInSor - the verified date of the replica with id "+mnStr +" is "+date);
                     NodeReference mn = new NodeReference();
                     mn.setValue(mnStr);
                     Replica replica = new Replica();
