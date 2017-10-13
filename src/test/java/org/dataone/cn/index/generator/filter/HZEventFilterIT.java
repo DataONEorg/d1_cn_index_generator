@@ -188,7 +188,7 @@ public class HZEventFilterIT {
     
     @Test
     public void testFilterArchivedIndex() throws Exception {
-        String id = "doi:10.6073/AA/knb-lter-bes.69.21"; //this is an archived object and there is no solr document
+        String id = "fake_id_hello"; //this is fake id and there is no solr document
         SystemMetadata sysmeta = new SystemMetadata();
         //id
         Identifier pid = new Identifier();
