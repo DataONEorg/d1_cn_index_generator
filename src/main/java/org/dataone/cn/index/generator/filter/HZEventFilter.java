@@ -103,8 +103,7 @@ public class HZEventFilter {
                 if(client == null) {
                     client = new HttpSolrClient(solrBaseURL);
                 }
-                String queryUrl = null;
-                SolrDocument solrDoc = getSolrReponse(queryUrl); //step 1
+                SolrDocument solrDoc = getSolrReponse(pid.getValue()); //step 1
                 String id = getId(solrDoc);
                 if(id == null) { //step 2
                     //no slor doc
