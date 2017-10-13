@@ -204,7 +204,7 @@ public class HZEventFilter {
      * @param solrReplicas
      * @return true if the replicat lists are the same.
      */
-    boolean compareRaplicaList(Identifier pid, List<Replica> sysReplicas, List<Replica> solrReplicas) {
+    private boolean compareRaplicaList(Identifier pid, List<Replica> sysReplicas, List<Replica> solrReplicas) {
         boolean equal = true;
         if(sysReplicas != null ) {
             if(sysReplicas.size() != solrReplicas.size()) {
@@ -277,7 +277,7 @@ public class HZEventFilter {
      * @param doc
      * @return an empty list if there is no replica information
      */
-    List<Replica>  getReplicasInSolr(SolrDocument doc) throws Exception {
+    private List<Replica>  getReplicasInSolr(SolrDocument doc) throws Exception {
         List<Replica> replicas = new ArrayList<Replica>();
         Collection<Object> mns =  getValues(doc, REPLICAMN); //the implementation class is ArrayList. So the order can be prserved.
         //System.out.println("==============The class name of collection is "+mns.getClass().getCanonicalName());
@@ -321,7 +321,7 @@ public class HZEventFilter {
      * @param doc
      * @return
      */
-    BigInteger getSerialVersion(SolrDocument doc){
+    private BigInteger getSerialVersion(SolrDocument doc){
         BigInteger serialVersion = null;
         Collection<Object> values =  getValues(doc, SERIALVERSION);
         if (values != null) {
@@ -338,7 +338,7 @@ public class HZEventFilter {
      * @param doc
      * @return null if no modified date was found
      */
-    Date getModificationDateInSolr(SolrDocument doc) {
+    private Date getModificationDateInSolr(SolrDocument doc) {
         Date date = null;
         Collection<Object> values =  getValues(doc, DATEMODIFIED);
         if (values != null) {
@@ -355,7 +355,7 @@ public class HZEventFilter {
      * @param doc
      * @return null if no id was found. This means no solr doc was found.
      */
-    String getId(SolrDocument doc) {
+    private String getId(SolrDocument doc) {
         String id = null;
         Collection<Object> values =  getValues(doc, ID);
         if (values != null) {
@@ -373,7 +373,7 @@ public class HZEventFilter {
      * @param fieldName
      * @return null if no values was found.
      */
-    Collection<Object> getValues(SolrDocument doc, String fieldName) {
+    private Collection<Object> getValues(SolrDocument doc, String fieldName) {
         Collection<Object> fieldValues = null;
         if(doc != null) {
             fieldValues = doc.getFieldValues(fieldName);
@@ -391,7 +391,7 @@ public class HZEventFilter {
      * @throws IOException 
      * @throws SolrServerException 
      */
-     SolrDocument getSolrReponse(String id) throws SolrServerException, IOException {
+     private SolrDocument getSolrReponse(String id) throws SolrServerException, IOException {
         SolrDocument document = new SolrDocument();
         id = escapeQueryChars(id);
         String filter = ID+":"+id;

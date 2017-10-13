@@ -77,7 +77,7 @@ public class HZEventFilterIT {
     }
     
     @Test
-    public void testgetSolrReponse() throws Exception {
+    public void testFilter() throws Exception {
         //Info maually read from solr doc
         String id = "doi:10.18739/A2J32X";
         String sysModificationDate = "2017-08-07T20:58:57.294Z";
@@ -174,7 +174,35 @@ public class HZEventFilterIT {
         replicas.add(replicaMN6);
         Assert.assertTrue(!filter.filter(sysmeta));
         
+        //change to a replica with another name.
+        replicas.remove(4);
+        Replica replicaMN7 = new Replica();
+        NodeReference node7 = new NodeReference();
+        node7.setValue("urn:node:fake");
+        replicaMN7.setReplicaMemberNode(node7);
+        replicaMN7.setReplicaVerified(isoFormatter.parse(vDate5));
+        replicas.add(replicaMN7);
+        Assert.assertTrue(!filter.filter(sysmeta));
+        filter.closeSolrClient();
+    }
+    
+    @Test
+    public void testFilterArchivedIndex() throws Exception {
+        String id = "doi:10.6073/AA/knb-lter-bes.69.21"; //this is an archived object and there is no solr document
+        SystemMetadata sysmeta = new SystemMetadata();
+        //id
+        Identifier pid = new Identifier();
+        pid.setValue(id);
+        sysmeta.setIdentifier(pid);
+        sysmeta.setArchived(true);
+        //compare - it should return true (not index) since there is solr document and the archive is true, in the system metadata.
+        HZEventFilter filter = new HZEventFilter();
+        Assert.assertTrue(filter.filter(sysmeta));
         
+        //we set archive to false (this is not actually setting to the hazelcast), so we should grant the index task since the archive is false, but no solr document
+        sysmeta.setArchived(false);
+        Assert.assertTrue(!filter.filter(sysmeta));
+        filter.closeSolrClient();
     }
 
 }
