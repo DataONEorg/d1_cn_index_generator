@@ -22,11 +22,11 @@
 package org.dataone.cn.index.generator.filter;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
-import java.util.Vector;
 
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrClient;
@@ -41,7 +41,7 @@ import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v1.NodeReference;
 import org.dataone.service.types.v1.Replica;
 import org.dataone.service.types.v2.SystemMetadata;
-import org.w3c.dom.Document;
+
 
 
 /**
@@ -58,14 +58,20 @@ public class HZEventFilter {
     private static String DATEMODIFIED = "dateModified";
     private static String REPLICAMN = "replicaMN";
     private static String REPLICAVERIFIEDATE = "replicaVerifiedDate";
+    private static String SERIALVERSION = "serialVersion";
     private static int FIRSTSOLRDOCINDEX = 0;
 
     private String solrBaseURL = null;
+    private SolrClient client = null;
 
-    
+    /**
+     * Constructor.
+     * Initialize the solr client
+     */
     public HZEventFilter() {
         solrBaseURL = Settings.getConfiguration().getString("solr.base.uri", "http://localhost:8983/solr/search_core");
         logger.info("HZEvetFilter.constructor - the base url is "+solrBaseURL);
+        client = new HttpSolrClient(solrBaseURL);
     }
     
     /**
@@ -78,9 +84,13 @@ public class HZEventFilter {
      *    3.1 if sysmeta > solr index, return false (keep index)
      *    3.2 if sysmeta < solr index, return true (filter it out)
      *    3.3 if sysemeta = solr index, compare the replica info.
-     *        3.3.1  no change on replica info, return true (filter out)
-     *        3.3.2  there is a change, return false (keep index)
-     * If any exception happens, it will return false for the safety.
+     *        3.3.1 If serialVersion in the solr is available, compare the value.
+     *              3.3.1.1 If sysmeta = solr, return true (filter it out) since no change in replica
+     *              3.3.1.2 If sysmeta != solr, return false (keep index) since there is a change
+     *        3.3.2. If serialVersion in solr is Not availabe, comare replica lists:
+     *              3.3.2.1 no change on replica info, return true (filter out)
+     *              3.3.2.2  there is a change, return false (keep index)
+     * If any exception happens, it will return false for safet.
      * @param sysmeta
      * @return true if we don't need to index it (filter out)
      */
@@ -90,6 +100,9 @@ public class HZEventFilter {
         boolean enableFiltering = Settings.getConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
         if(enableFiltering) {
             try {
+                if(client == null) {
+                    client = new HttpSolrClient(solrBaseURL);
+                }
                 String queryUrl = null;
                 SolrDocument solrDoc = getSolrReponse(queryUrl); //step 1
                 String id = getId(solrDoc);
@@ -122,20 +135,39 @@ public class HZEventFilter {
                     } else {
                         //3.3
                         // the modification date equals. we need to compare replicas
-                       List<Replica> sysReplicas = sysmeta.getReplicaList();
-                       List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
-                       boolean equal = compareRaplicaList(pid, sysReplicas, solrReplicas);
-                       if(equal) {
-                           //3.3.1
-                           logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
-                                   " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
-                          needFilterOut = true;
+                       BigInteger sysSerial = sysmeta.getSerialVersion();
+                       BigInteger solrSerial = getSerialVersion(solrDoc);//It is a new solr field and it can be null.
+                       if(solrSerial != null) {
+                           //3.3.1.1 If sysmeta = solr, return true (filter it out) since no change in replica
+                          if(solrSerial.equals(sysSerial)) {
+                              //3.3.1.1
+                              logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                      " having the same modification date and serial version in the solr document. So this event has been filtered out for indexing (no indexing).");
+                              needFilterOut = true;
+                          } else {
+                              //3.3.1.2 If sysmeta != solr, return false (keep index) since there is a change
+                              logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                      " having the same modification date but a different serial version in the solr document. So this event should be granted for indexing.");
+                              needFilterOut = false;
+                          }
                        } else {
-                           //3.3.2
-                           logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
-                                   " having the same modification date as the SOLR server. However, they have different replica lists. So this event should be granted for indexing.");
-                           needFilterOut = false;
+                           //3.3.2. If serialVersion in solr is Not availabe, comare replica lists (serilaVersion is a new added solr field)
+                           List<Replica> sysReplicas = sysmeta.getReplicaList();
+                           List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
+                           boolean equal = compareRaplicaList(pid, sysReplicas, solrReplicas);
+                           if(equal) {
+                               //3.3.2.1
+                               logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                                       " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
+                              needFilterOut = true;
+                           } else {
+                               //3.3.2.2
+                               logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                                       " having the same modification date as the SOLR server. However, they have different replica lists. So this event should be granted for indexing.");
+                               needFilterOut = false;
+                           }
                        }
+                      
                     }
                 }
             } catch (Exception e) {
@@ -150,6 +182,15 @@ public class HZEventFilter {
         return needFilterOut;
     }
     
+    /**
+     * Close the solr client
+     * @throws IOException
+     */
+    public void closeSolrClient() throws IOException {
+        if(client != null) {
+            client.close();
+        }
+    }
     
     /**
      * Compare two replica list from system metadata and slor doc. The one from solr doc should be null, but it can be empty.
@@ -265,6 +306,24 @@ public class HZEventFilter {
         return replicas;
     }
     
+    
+    /**
+     * Get the serial version value from the solr doc. Returns null if can't find it. 
+     * @param doc
+     * @return
+     */
+    BigInteger getSerialVersion(SolrDocument doc){
+        BigInteger serialVersion = null;
+        Collection<Object> values =  getValues(doc, SERIALVERSION);
+        if (values != null) {
+            for (Object obj : values) {
+                serialVersion = (BigInteger) obj;
+                 //serialVersion = BigInteger.valueOf(version.longValue());
+                break;//get first element
+            }
+        }
+        return serialVersion;
+    }
     /**
      * Get the modified date from solr doc.
      * @param doc
@@ -329,9 +388,8 @@ public class HZEventFilter {
         String filter = ID+":"+id;
         System.out.println("the filter is "+filter);
         SolrQuery query = new SolrQuery(filter);
-        query.setFields(ID,DATEMODIFIED, REPLICAMN, REPLICAVERIFIEDATE);
+        query.setFields(ID,DATEMODIFIED, REPLICAMN, REPLICAVERIFIEDATE, SERIALVERSION);
         query.setStart(0);
-        SolrClient client = new HttpSolrClient(solrBaseURL);
         QueryResponse response = client.query(query);
         SolrDocumentList results = response.getResults();
         //System.out.println("the size of result is "+results.size());
@@ -339,7 +397,6 @@ public class HZEventFilter {
             document = results.get(FIRSTSOLRDOCINDEX);
         }
         //System.out.println("the solr document is "+document);
-        client.close();
         return document;
         
     }
@@ -349,7 +406,7 @@ public class HZEventFilter {
      * @param s
      * @return
      */
-    private static String escapeQueryChars(String s) {
+    public static String escapeQueryChars(String s) {
          StringBuilder sb = new StringBuilder();
          for (int i = 0; i < s.length(); i++) {
              char c = s.charAt(i);
