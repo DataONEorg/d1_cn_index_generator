@@ -218,14 +218,19 @@ public class HZEventFilter {
                     boolean found = false;
                     boolean haveDifferentVerificationDate = false;
                     NodeReference sysNode = sysReplica.getReplicaMemberNode();
+                    logger.debug("The replica node id in the sysem metadata is "+sysNode.getValue());
                     Date sysConfirmDate = sysReplica.getReplicaVerified();
+                    logger.debug("The replica node verification date in the sysem metadata is ====="+sysConfirmDate);
                     for(Replica solrReplica : solrReplicas) {
-                        NodeReference solrNode = sysReplica.getReplicaMemberNode();
-                        Date solrConfirmDate = sysReplica.getReplicaVerified();
+                        NodeReference solrNode = solrReplica.getReplicaMemberNode();
+                        logger.debug("The replica node id in the solr is "+solrNode.getValue());
+                        Date solrConfirmDate = solrReplica.getReplicaVerified();
+                        logger.debug("The replica node verification date in the solr is "+solrConfirmDate);
                         if(sysNode.equals(solrNode)) {
                             found = true;
                             if(sysConfirmDate.getTime() != solrConfirmDate.getTime()) {
                               //they have the different verification date. We need to index
+                                logger.info("The verfication date in the system metadata is different in the solr for the node "+ sysNode.getValue());
                                 haveDifferentVerificationDate = true;
                             } 
                         }
