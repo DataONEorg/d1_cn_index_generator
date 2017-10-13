@@ -79,17 +79,18 @@ public class HZEventFilter {
      * 1. Fetching the solr index for the pid. 
      * 2. If there is no solr index for the pid, 
      *    2.1 check the archive flag in the system metadata. If the archive=true, filter this pid out
-     *    2.2  if the archive=false, keep this pid (return false).
+     *    2.2  if the archive=false, keep this pid task (return false).
      * 3. If there is a solr index, compare the modification date between the solr index and the system metadata.
-     *    3.1 if sysmeta > solr index, return false (keep index)
+     *    3.1 if sysmeta > solr index, return false (keep index task)
      *    3.2 if sysmeta < solr index, return true (filter it out)
      *    3.3 if sysemeta = solr index, compare the replica info.
-     *        3.3.1 If serialVersion in the solr is available, compare the value.
-     *              3.3.1.1 If sysmeta = solr, return true (filter it out) since no change in replica
-     *              3.3.1.2 If sysmeta != solr, return false (keep index) since there is a change
+     *        3.3.1 If serialVersion in the solr is available, compare the value of serial version.
+     *              3.3.1.1 If solr = sysmeta , return true (filter it out) since no change in replica
+     *              3.3.1.2 If solr < sysmeta, return false (keep index task) since the solr has a smaller (older) serial version.
+     *              3.3.1.3 If solr > sysmeta, return true (filter it out) since the solr has a bigger (newer) serial version.
      *        3.3.2. If serialVersion in solr is Not availabe, comare replica lists:
      *              3.3.2.1 no change on replica info, return true (filter out)
-     *              3.3.2.2  there is a change, return false (keep index)
+     *              3.3.2.2  there is a change, return false (keep index task)
      * If any exception happens, it will return false for safet.
      * @param sysmeta
      * @return true if we don't need to index it (filter out)
@@ -137,17 +138,21 @@ public class HZEventFilter {
                        BigInteger sysSerial = sysmeta.getSerialVersion();
                        BigInteger solrSerial = getSerialVersion(solrDoc);//It is a new solr field and it can be null.
                        if(solrSerial != null) {
-                           //3.3.1.1 If sysmeta = solr, return true (filter it out) since no change in replica
-                          if(solrSerial.equals(sysSerial)) {
-                              //3.3.1.1
+                          if(solrSerial.compareTo(sysSerial) == 0) {
+                              //3.3.1.1 If solr = sysmeta , return true (filter it out) since no change in replica
                               logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
                                       " having the same modification date and serial version in the solr document. So this event has been filtered out for indexing (no indexing).");
                               needFilterOut = true;
-                          } else {
-                              //3.3.1.2 If sysmeta != solr, return false (keep index) since there is a change
+                          } else if (solrSerial.compareTo(sysSerial) == -1){
+                              //3.3.1.2 If solr < sysmeta, return false (keep index task) since the solr has a smaller (older) serial version.
                               logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                                      " having the same modification date but a different serial version in the solr document. So this event should be granted for indexing.");
+                                      " having the same modification date but the serial version in the solr document is less than the one in the system metadata. So this event should be granted for indexing.");
                               needFilterOut = false;
+                          } else if (solrSerial.compareTo(sysSerial) == 1) {
+                              //3.3.1.3 If solr > sysmeta, return true (filter it out) since the solr has a bigger (newer) serial version.
+                              logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                      " having the same modification date but the serial version in the solr document is greater than the one in the system metadata. So this event has been filtered out for indexing (no indexing).");
+                              needFilterOut = true;
                           }
                        } else {
                            //3.3.2. If serialVersion in solr is Not availabe, comare replica lists (serilaVersion is a new added solr field)
@@ -204,7 +209,7 @@ public class HZEventFilter {
         if(sysReplicas != null ) {
             if(sysReplicas.size() != solrReplicas.size()) {
                 //system metaddata and solr have different replica size. We need to indexing.
-                logger.debug("HZEventFilter.compareRaplicaList - the system metadata for the index event hows "+pid.getValue()+" having diffrerent size of the replica list to the solr doc. Not the same");
+                logger.info("HZEventFilter.compareRaplicaList - the system metadata for the index event hows "+pid.getValue()+" having diffrerent size of the replica list to the solr doc. Not the same");
                 equal = false;
             } else {
                 //compare the replica lists. If there is not match, the needFilterOut will be set to false. Otherwise (everything matching), it will keep true value.
@@ -228,13 +233,13 @@ public class HZEventFilter {
                         if(found && haveDifferentVerificationDate) {
                             // we found the node but has different verification date. We need to break the loop (ignore others) and grant the event
                             //system metaddata has an empty replica list but solr doesn't. We need to indexing.
-                            logger.debug("HZEventFilter.compareReplicaList - the system metadata for the index event shows "+pid.getValue()+" having at least one of the replica has different verified date to solr doc. Not the same.");
+                            logger.info("HZEventFilter.compareReplicaList - the system metadata for the index event shows "+pid.getValue()+" having at least one of the replica has different verified date to solr doc. Not the same.");
                             equal = false;
                             break outerloop;
                         }
                     }
                     if(!found) {
-                        logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+" having at least one of the replica which can't be found on the solr doc. Not the same.");
+                        logger.info("HZEventFilter.compareReplicaList - the system metadata for the index event shows "+pid.getValue()+" having at least one of the replica which can't be found on the solr doc. Not the same.");
                         equal = false;
                         break;
                     }
@@ -243,19 +248,19 @@ public class HZEventFilter {
                 if((equal)) {
                      //we found that everything match in replica list. So we should filter the event (no indexing)
                     //this block is only for log information
-                    logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+
+                    logger.info("HZEventFilter.compareReplicaList - the system metadata for the index event shows "+pid.getValue()+
                             " having the same replica list as the solr doc.");
                     equal = true;
                 }
             }
         } else if(solrReplicas.isEmpty()) {
             //both slor and system metadata has an empty replica list. we should filter out this even, so no indexing.
-            logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+
+            logger.info("HZEventFilter.compareReplicaList - the system metadata for the index event shows "+pid.getValue()+
                     " having  an emply replica list. So does the solr doc.Same.");
             equal = true;
         } else {
             //system metaddata has an empty replica list but solr doesn't. We need to indexing.
-            logger.debug("HZEventFilter.compare - the system metadata for the index event shows "+pid.getValue()+" having an empty replica list while the solr doesn't.Not same.");
+            logger.info("HZEventFilter.compareReplicaList - the system metadata for the index event shows "+pid.getValue()+" having an empty replica list while the solr doesn't.Not same.");
             equal = false;
         }
         return equal;
