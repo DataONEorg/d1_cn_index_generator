@@ -22,9 +22,11 @@
 
 package org.dataone.cn.index.generator;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.dataone.cn.index.generator.filter.HZEventFilter;
 import org.dataone.cn.index.task.IgnoringIndexIdPool;
 import org.dataone.cn.index.task.IndexTask;
 import org.dataone.cn.index.task.IndexTaskRepository;
@@ -48,6 +50,7 @@ public class IndexTaskGenerator {
     private static Logger logger = Logger.getLogger(IndexTaskGenerator.class.getName());
     //private static final String IGNOREPID = "OBJECT_FORMAT_LIST.1.1";
     private static PerformanceLogger perfLog = PerformanceLogger.getInstance();
+    private static HZEventFilter filter = new HZEventFilter();
 
     @Autowired
     private IndexTaskRepository repo;
@@ -60,7 +63,7 @@ public class IndexTaskGenerator {
      * @return IndexTask
      */
     public IndexTask processSystemMetaDataAdd(SystemMetadata smd, String objectPath) {
-        if (IgnoringIndexIdPool.isNotIgnorePid(smd)) {
+        if (IgnoringIndexIdPool.isNotIgnorePid(smd) && !filter.filter(smd)) {
             long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -84,7 +87,7 @@ public class IndexTaskGenerator {
      * @return IndexTask
      */
     public IndexTask processSystemMetaDataUpdate(SystemMetadata smd, String objectPath) {
-        if (IgnoringIndexIdPool.isNotIgnorePid(smd)) {
+        if (IgnoringIndexIdPool.isNotIgnorePid(smd) && !filter.filter(smd)) {
             long start = System.currentTimeMillis();
             removeDuplicateNewTasks(smd);
             IndexTask task = new IndexTask(smd, objectPath);
@@ -152,6 +155,16 @@ public class IndexTaskGenerator {
                 logger.debug("Unable to delete existing index task for pid: " + indexTask.getPid()
                         + " prior to generating new index task.");
             }
+        }
+    }
+    
+    /**
+     * Close the some underneath connections
+     * @throws IOException
+     */
+    public void close() throws IOException {
+        if(filter != null) {
+            filter.closeSolrClient();
         }
     }
     

@@ -75,6 +75,11 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
     public void stop() {
         logger.info("stopping index task generator entry listener...");
         this.systemMetadata.removeEntryListener(this);
+        try {
+            generator.close();
+        } catch (Exception e) {
+            logger.warn("IndexTaskGeneratorDaemon.stop - there was an issue to close the index generator since "+e.getMessage());
+        }
     }
 
     /**
