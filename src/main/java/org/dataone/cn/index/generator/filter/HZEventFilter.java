@@ -98,7 +98,7 @@ public class HZEventFilter {
     public boolean filter(SystemMetadata sysmeta) {
         boolean needFilterOut = true; 
         Identifier pid = sysmeta.getIdentifier();
-        boolean enableFiltering = Settings.getResetConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
+        boolean enableFiltering = Settings.getConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
         if(enableFiltering) {
             try {
                 if(client == null) {
