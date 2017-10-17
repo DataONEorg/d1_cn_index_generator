@@ -53,7 +53,7 @@ import org.dataone.service.types.v2.SystemMetadata;
  */
 public class HZEventFilter {
     private static Logger logger = Logger.getLogger(HZEventFilter.class);
-    private static String INDEX_EVENT_FILTERING_ACTIVE = "IndexEvent.filtering.active";
+    private static String INDEX_EVENT_FILTERING_ACTIVE = "indexEvent.filtering.active";
     private static String ID = "id";
     private static String DATEMODIFIED = "dateModified";
     private static String REPLICAMN = "replicaMN";
@@ -98,7 +98,7 @@ public class HZEventFilter {
     public boolean filter(SystemMetadata sysmeta) {
         boolean needFilterOut = true; 
         Identifier pid = sysmeta.getIdentifier();
-        boolean enableFiltering = Settings.getConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
+        boolean enableFiltering = Settings.getResetConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
         if(enableFiltering) {
             try {
                 if(client == null) {
@@ -180,7 +180,7 @@ public class HZEventFilter {
                 needFilterOut = false;
             }
         } else {
-            logger.info("HZEventFilter.filter - The filter was disable by setting IndexEvent.filtering.active=false. So the index event for "+pid.getValue()+" should be granted for indexing.");
+            logger.info("HZEventFilter.filter - The filter was disable by setting indexEvent.filtering.active=false. So the index event for "+pid.getValue()+" should be granted for indexing.");
             needFilterOut = false;
         }
         return needFilterOut;

@@ -2,6 +2,4 @@
 <!-- Apache Commons Configuration -->
 <configuration>
   <properties fileName="index-generator.properties"/>
-  <!-- Some specific properties for CNs -->
-  <properties fileName="file:/etc/dataone/index/cn-index-generator.properties" />
 </configuration>
