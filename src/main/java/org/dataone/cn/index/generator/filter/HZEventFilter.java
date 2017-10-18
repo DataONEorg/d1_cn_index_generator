@@ -209,7 +209,7 @@ public class HZEventFilter {
         if(sysReplicas != null ) {
             if(sysReplicas.size() != solrReplicas.size()) {
                 //system metaddata and solr have different replica size. We need to indexing.
-                logger.info("HZEventFilter.compareRaplicaList - the system metadata for the index event hows "+pid.getValue()+" having diffrerent size of the replica list to the solr doc. Not the same");
+                logger.info("HZEventFilter.compareRaplicaList - the system metadata for the index event "+pid.getValue()+" has a diffrerent size of the replicas to the solr doc. Not the same");
                 equal = false;
             } else {
                 //compare the replica lists. If there is not match, the needFilterOut will be set to false. Otherwise (everything matching), it will keep true value.
