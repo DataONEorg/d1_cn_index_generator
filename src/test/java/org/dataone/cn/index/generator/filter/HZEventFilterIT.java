@@ -1,5 +1,5 @@
 /**
- * This work was created by participants in the DataONE project, and is
+9 * This work was created by participants in the DataONE project, and is
  * jointly copyrighted by participating institutions in DataONE. For 
  * more information on DataONE, see our web site at http://dataone.org.
  *
@@ -119,26 +119,41 @@ public class HZEventFilterIT {
         replicaMN2.setReplicaVerified(isoFormatter.parse(vDate2));
         replicas.add(replicaMN2);
         
+        //these two are duplicated replicas
         Replica replicaMN3 = new Replica();
         NodeReference node3 = new NodeReference();
-        node3.setValue(replica3);
+        node3.setValue(replica1);
         replicaMN3.setReplicaMemberNode(node3);
-        replicaMN3.setReplicaVerified(isoFormatter.parse(vDate3));
+        replicaMN3.setReplicaVerified(isoFormatter.parse(vDate1));
         replicas.add(replicaMN3);
         
         Replica replicaMN4 = new Replica();
         NodeReference node4 = new NodeReference();
-        node4.setValue(replica4);
+        node4.setValue(replica2);
         replicaMN4.setReplicaMemberNode(node4);
-        replicaMN4.setReplicaVerified(isoFormatter.parse(vDate4));
+        replicaMN4.setReplicaVerified(isoFormatter.parse(vDate2));
         replicas.add(replicaMN4);
         
         Replica replicaMN5 = new Replica();
         NodeReference node5 = new NodeReference();
-        node5.setValue(replica5);
+        node5.setValue(replica3);
         replicaMN5.setReplicaMemberNode(node5);
-        replicaMN5.setReplicaVerified(isoFormatter.parse(vDate5));
+        replicaMN5.setReplicaVerified(isoFormatter.parse(vDate3));
         replicas.add(replicaMN5);
+        
+        Replica replicaMN6 = new Replica();
+        NodeReference node6 = new NodeReference();
+        node6.setValue(replica4);
+        replicaMN6.setReplicaMemberNode(node6);
+        replicaMN6.setReplicaVerified(isoFormatter.parse(vDate4));
+        replicas.add(replicaMN6);
+        
+        Replica replicaMN7 = new Replica();
+        NodeReference node7 = new NodeReference();
+        node7.setValue(replica5);
+        replicaMN7.setReplicaMemberNode(node7);
+        replicaMN7.setReplicaVerified(isoFormatter.parse(vDate5));
+        replicas.add(replicaMN7);
         
         sysmeta.setReplicaList(replicas);
         
@@ -157,7 +172,7 @@ public class HZEventFilterIT {
         Assert.assertTrue(filter.filter(sysmeta));
         
         //even though removed a replica. But the still has an older modification date, filter it out
-        replicas.remove(4);
+        replicas.remove(6);
         Assert.assertTrue(filter.filter(sysmeta));
         
         //set back the original modification date, but we remove a replica. So the index should be granted
@@ -165,23 +180,23 @@ public class HZEventFilterIT {
         Assert.assertTrue(!filter.filter(sysmeta));
         
         //has the same mofication date, but a replica has different verification date
-        Replica replicaMN6 = new Replica();
-        NodeReference node6 = new NodeReference();
-        node6.setValue(replica5);
-        replicaMN6.setReplicaMemberNode(node6);
-        String vDate6= "2017-10-10T05:50:26.686Z";
-        replicaMN6.setReplicaVerified(isoFormatter.parse(vDate6));
-        replicas.add(replicaMN6);
+        Replica replicaMN8 = new Replica();
+        NodeReference node8 = new NodeReference();
+        node8.setValue(replica5);
+        replicaMN8.setReplicaMemberNode(node8);
+        String vDate8= "2017-10-10T05:50:26.686Z";
+        replicaMN8.setReplicaVerified(isoFormatter.parse(vDate8));
+        replicas.add(replicaMN8);
         Assert.assertTrue(!filter.filter(sysmeta));
         
         //change to a replica with another name.
-        replicas.remove(4);
-        Replica replicaMN7 = new Replica();
-        NodeReference node7 = new NodeReference();
-        node7.setValue("urn:node:fake");
-        replicaMN7.setReplicaMemberNode(node7);
-        replicaMN7.setReplicaVerified(isoFormatter.parse(vDate5));
-        replicas.add(replicaMN7);
+        replicas.remove(6);
+        Replica replicaMN9 = new Replica();
+        NodeReference node9 = new NodeReference();
+        node9.setValue("urn:node:fake");
+        replicaMN9.setReplicaMemberNode(node9);
+        replicaMN9.setReplicaVerified(isoFormatter.parse(vDate5));
+        replicas.add(replicaMN9);
         Assert.assertTrue(!filter.filter(sysmeta));
         filter.closeSolrClient();
     }
