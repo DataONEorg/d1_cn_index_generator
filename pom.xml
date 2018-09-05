@@ -3,7 +3,7 @@
   <groupId>org.dataone</groupId>
   <artifactId>d1_cn_index_generator</artifactId>
   <version>2.4.0-SNAPSHOT</version>
-	<name>DataONE Index Task Generator</name>
+  <name>DataONE Index Task Generator</name>
   <description>DataONE Index Task Generator creates index task items as a result of activity on the cn node stack as detected by a hz event listener to the hz backed system metadata distributed map.</description>
   
   <properties>
