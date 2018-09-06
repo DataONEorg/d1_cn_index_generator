@@ -7,12 +7,12 @@
   <description>DataONE Index Task Generator creates index task items as a result of activity on the cn node stack as detected by a hz event listener to the hz backed system metadata distributed map.</description>
   
   <properties>
-      <compiler.target.version>1.7</compiler.target.version>
+      <compiler.target.version>1.8</compiler.target.version>
   		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   		<d1_cn_index_common.version>2.4.0-SNAPSHOT</d1_cn_index_common.version>
   		<d1_common_java.version>2.4.0-SNAPSHOT</d1_common_java.version>
   		<d1_cn_common.version>2.4.0-SNAPSHOT</d1_cn_common.version>
-  		<spring.version>3.1.4.RELEASE</spring.version>
+  		<spring.version>4.3.8.RELEASE</spring.version>
   		<hazelcast.version>2.4.1</hazelcast.version>
 	</properties>
 	
@@ -166,7 +166,7 @@
 		<dependency>
 		    <groupId>junit</groupId>
 		    <artifactId>junit</artifactId>
-		    <version>4.10</version>
+		    <version>4.12</version>
 		    <scope>test</scope>
 		</dependency>
 		<dependency>
