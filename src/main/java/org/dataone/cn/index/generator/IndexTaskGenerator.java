@@ -73,7 +73,7 @@ public class IndexTaskGenerator {
             if(smd != null && smd.getIdentifier() != null) {
                 id = smd.getIdentifier().getValue();
             }
-            if (perfLog.isEnabled())
+            if (perfLog.isLogEnabled())
             	perfLog.log("IdexTaskGenerator.processSystemMetaDataAdd add a adding task for id "+id, System.currentTimeMillis() - start);
             return task;
         }
@@ -98,7 +98,7 @@ public class IndexTaskGenerator {
             if(smd != null && smd.getIdentifier() != null) {
                 id = smd.getIdentifier().getValue();
             }
-            if (perfLog.isEnabled())
+            if (perfLog.isLogEnabled())
             	perfLog.log("IdexTaskGenerator.processSystemMetaDataUpdate add a updating task for id "+id, System.currentTimeMillis() - start);
             return task;
         }
@@ -124,7 +124,7 @@ public class IndexTaskGenerator {
                 id = smd.getIdentifier().getValue();
             }
 
-            if (perfLog.isEnabled())
+            if (perfLog.isLogEnabled())
             	perfLog.log("IdexTaskGenerator.processSystemMetaDataUpdate add a deleting task for id "+id, System.currentTimeMillis() - start);
 
             return task;
