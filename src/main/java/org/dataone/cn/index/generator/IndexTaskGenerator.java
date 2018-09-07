@@ -34,7 +34,8 @@ import org.dataone.cn.index.util.PerformanceLogger;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v2.SystemMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.orm.hibernate3.HibernateOptimisticLockingFailureException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
 
 /**
  * IndexTaskGenerator is a strategy implementation for index processing to
@@ -163,7 +164,7 @@ public class IndexTaskGenerator {
         for (IndexTask indexTask : itList) {
             try {
                 repo.delete(indexTask);
-            } catch (HibernateOptimisticLockingFailureException e) {
+            } catch (ObjectOptimisticLockingFailureException e) {
                 logger.warn("Unable to delete existing index task for pid: " + indexTask.getPid()
                         + " prior to generating new index task.");
             }
