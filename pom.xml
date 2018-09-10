@@ -35,6 +35,11 @@
 			<version>${d1_cn_common.version}</version>
 			<type>jar</type>
 		</dependency>
+                <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.3</version>
+            </dependency>
 		<dependency>
 			<groupId>commons-daemon</groupId>
 			<artifactId>commons-daemon</artifactId>
@@ -53,15 +58,6 @@
             <version>${hazelcast.version}</version>
             <scope>compile</scope>
         </dependency>
-		
-        <dependency>
-            <groupId>org.jibx</groupId>
-            <artifactId>jibx-run</artifactId>
-            <version>1.2.4.5</version>
-            <optional>false</optional>
-            <scope>compile</scope>
-        </dependency>
-		
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-core</artifactId>
@@ -122,7 +118,7 @@
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-entitymanager</artifactId>
-			<version>3.6.10.Final</version>
+			<version>4.3.11.Final</version>
 		</dependency>
         <dependency>
             <groupId>cglib</groupId>

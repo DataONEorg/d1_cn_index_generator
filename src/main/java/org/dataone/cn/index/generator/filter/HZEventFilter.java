@@ -71,7 +71,7 @@ public class HZEventFilter {
     public HZEventFilter() {
         solrBaseURL = Settings.getConfiguration().getString("solr.base.uri", "http://localhost:8983/solr/search_core");
         logger.info("HZEvetFilter.constructor - the base url is "+solrBaseURL);
-        client = new HttpSolrClient.Builder(solrBaseURL).build();;
+        client = new HttpSolrClient.Builder(solrBaseURL).build();
     }
     
     /**
