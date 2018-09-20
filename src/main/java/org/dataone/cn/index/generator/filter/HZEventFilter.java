@@ -71,7 +71,10 @@ public class HZEventFilter {
     public HZEventFilter() {
         solrBaseURL = Settings.getConfiguration().getString("solr.base.uri", "http://localhost:8983/solr/search_core");
         logger.info("HZEvetFilter.constructor - the base url is "+solrBaseURL);
-        client = new HttpSolrClient.Builder(solrBaseURL).build();
+//        client = new HttpSolrClient.Builder(solrBaseURL).build();
+//      builder used in HttpClient 4.5.3, needed for later SolrJ client versions (7x)
+        client = new HttpSolrClient(solrBaseURL);
+    
     }
     
     /**
@@ -102,7 +105,8 @@ public class HZEventFilter {
         if(enableFiltering) {
             try {
                 if(client == null) {
-                    client = new HttpSolrClient.Builder(solrBaseURL).build();
+                    client = new HttpSolrClient(solrBaseURL);
+//                    client = new HttpSolrClient.Builder(solrBaseURL).build();
                 }
                 SolrDocument solrDoc = getSolrReponse(pid.getValue()); //step 1
                 String id = getId(solrDoc);
