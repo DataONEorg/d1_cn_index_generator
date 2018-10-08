@@ -54,6 +54,9 @@ import org.dataone.service.types.v2.SystemMetadata;
 public class HZEventFilter {
     private static Logger logger = Logger.getLogger(HZEventFilter.class);
     private static String INDEX_EVENT_FILTERING_ACTIVE = "indexEvent.filtering.active";
+    //This configuration is used to ignore those objects which have failed to be indexed for a while. The default value of the max age of the modification date is 2592000000 milliseconds (30 days). 
+    //If the age of an object's modified date is more than 30 days, the object will be ignored and wouldn't be added to the index event table. If the default value is a negative number, it means this time filter is disabled. 
+    private static String INDEX_EVENT_FILTERING_IGNORE_MODIFIEDTIME_AGE = "indexEvent.filtering.max.modifiedDate.age"; 
     private static String ID = "id";
     private static String DATEMODIFIED = "dateModified";
     private static String REPLICAMN = "replicaMN";
@@ -76,6 +79,7 @@ public class HZEventFilter {
     
     /**
      * Here is the algorithm:
+     * First to filter out pretty old objects, then:
      * 1. Fetching the solr index for the pid. 
      * 2. If there is no solr index for the pid, 
      *    2.1 check the archive flag in the system metadata. If the archive=true, filter this pid out
@@ -101,82 +105,85 @@ public class HZEventFilter {
         boolean enableFiltering = Settings.getConfiguration().getBoolean(INDEX_EVENT_FILTERING_ACTIVE, true);
         if(enableFiltering) {
             try {
-                if(client == null) {
-                    client = new HttpSolrClient(solrBaseURL);
-                }
-                SolrDocument solrDoc = getSolrReponse(pid.getValue()); //step 1
-                String id = getId(solrDoc);
-                if(id == null) { //step 2
-                    //no slor doc
-                    boolean archive = sysmeta.getArchived();
-                    if(archive) {
-                        //2.1
-                        //this is an archived object and there is no solr doc either. All set! We don't need index it.
-                        logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+" is an archived object and the SOLR server doesn't have the record either. So this event has been filtered out for indexing (no indexing).");
-                        needFilterOut = true;
-                    } else {
-                        //2.2
-                        logger.info("HZEventFilter.filter - the system metadata  for the index event shows shows "+pid.getValue()+" is not an archived object but the SOLR server doesn't have the record. So this event should be granted for indexing.");
-                        needFilterOut = false;
+                needFilterOut = fliterOutOldObject(sysmeta); 
+                if (!needFilterOut) {
+                    if(client == null) {
+                        client = new HttpSolrClient(solrBaseURL);
                     }
-                } else {
-                    Date sysDate = sysmeta.getDateSysMetadataModified();
-                    Date solrDate = getModificationDateInSolr(solrDoc);
-                    if(sysDate.getTime() > solrDate.getTime()) {
-                        //3.1
-                        logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                                " having a newer version than the SOLR server. So this event should be granted for indexing.");
-                        needFilterOut = false;
-                    } else if (sysDate.getTime() < solrDate.getTime()) {
-                        //3.2
-                        logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                                " having an older version than the SOLR server. So this event has been filtered out for indexing (no indexing).");
-                        needFilterOut = true;
+                    SolrDocument solrDoc = getSolrReponse(pid.getValue()); //step 1
+                    String id = getId(solrDoc);
+                    if(id == null) { //step 2
+                        //no slor doc
+                        boolean archive = sysmeta.getArchived();
+                        if(archive) {
+                            //2.1
+                            //this is an archived object and there is no solr doc either. All set! We don't need index it.
+                            logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+" is an archived object and the SOLR server doesn't have the record either. So this event has been filtered out for indexing (no indexing).");
+                            needFilterOut = true;
+                        } else {
+                            //2.2
+                            logger.info("HZEventFilter.filter - the system metadata  for the index event shows shows "+pid.getValue()+" is not an archived object but the SOLR server doesn't have the record. So this event should be granted for indexing.");
+                            needFilterOut = false;
+                        }
                     } else {
-                        //3.3
-                        // the modification date equals. we need to compare replicas
-                       BigInteger sysSerial = sysmeta.getSerialVersion();
-                       BigInteger solrSerial = getSerialVersion(solrDoc);//It is a new solr field and it can be null.
-                       if(solrSerial != null) {
-                          if(solrSerial.compareTo(sysSerial) == 0) {
-                              //3.3.1.1 If solr = sysmeta , return true (filter it out) since no change in replica
-                              logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                                      " having the same modification date and serial version in the solr document. So this event has been filtered out for indexing (no indexing).");
-                              needFilterOut = true;
-                          } else if (solrSerial.compareTo(sysSerial) == -1){
-                              //3.3.1.2 If solr < sysmeta, return false (keep index task) since the solr has a smaller (older) serial version.
-                              logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                                      " having the same modification date but the serial version in the solr document is less than the one in the system metadata. So this event should be granted for indexing.");
-                              needFilterOut = false;
-                          } else if (solrSerial.compareTo(sysSerial) == 1) {
-                              //3.3.1.3 If solr > sysmeta, return true (filter it out) since the solr has a bigger (newer) serial version.
-                              logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
-                                      " having the same modification date but the serial version in the solr document is greater than the one in the system metadata. So this event has been filtered out for indexing (no indexing).");
-                              needFilterOut = true;
-                          }
-                       } else {
-                           //3.3.2. If serialVersion in solr is Not availabe, comare replica lists (serilaVersion is a new added solr field)
-                           List<Replica> sysReplicas = sysmeta.getReplicaList();
-                           List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
-                           boolean equal = compareRaplicaList(pid, sysReplicas, solrReplicas);
-                           if(equal) {
-                               //3.3.2.1
-                               logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
-                                       " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
-                              needFilterOut = true;
+                        Date sysDate = sysmeta.getDateSysMetadataModified();
+                        Date solrDate = getModificationDateInSolr(solrDoc);
+                        if(sysDate.getTime() > solrDate.getTime()) {
+                            //3.1
+                            logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                    " having a newer version than the SOLR server. So this event should be granted for indexing.");
+                            needFilterOut = false;
+                        } else if (sysDate.getTime() < solrDate.getTime()) {
+                            //3.2
+                            logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                    " having an older version than the SOLR server. So this event has been filtered out for indexing (no indexing).");
+                            needFilterOut = true;
+                        } else {
+                            //3.3
+                            // the modification date equals. we need to compare replicas
+                           BigInteger sysSerial = sysmeta.getSerialVersion();
+                           BigInteger solrSerial = getSerialVersion(solrDoc);//It is a new solr field and it can be null.
+                           if(solrSerial != null) {
+                              if(solrSerial.compareTo(sysSerial) == 0) {
+                                  //3.3.1.1 If solr = sysmeta , return true (filter it out) since no change in replica
+                                  logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                          " having the same modification date and serial version in the solr document. So this event has been filtered out for indexing (no indexing).");
+                                  needFilterOut = true;
+                              } else if (solrSerial.compareTo(sysSerial) == -1){
+                                  //3.3.1.2 If solr < sysmeta, return false (keep index task) since the solr has a smaller (older) serial version.
+                                  logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                          " having the same modification date but the serial version in the solr document is less than the one in the system metadata. So this event should be granted for indexing.");
+                                  needFilterOut = false;
+                              } else if (solrSerial.compareTo(sysSerial) == 1) {
+                                  //3.3.1.3 If solr > sysmeta, return true (filter it out) since the solr has a bigger (newer) serial version.
+                                  logger.info("HZEventFilter.filter - the system metadata for the index event shows shows "+pid.getValue()+
+                                          " having the same modification date but the serial version in the solr document is greater than the one in the system metadata. So this event has been filtered out for indexing (no indexing).");
+                                  needFilterOut = true;
+                              }
                            } else {
-                               //3.3.2.2
-                               logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
-                                       " having the same modification date as the SOLR server. However, they have different replica lists. So this event should be granted for indexing.");
-                               needFilterOut = false;
+                               //3.3.2. If serialVersion in solr is Not availabe, comare replica lists (serilaVersion is a new added solr field)
+                               List<Replica> sysReplicas = sysmeta.getReplicaList();
+                               List<Replica> solrReplicas = getReplicasInSolr(solrDoc);//it wouldn't be null
+                               boolean equal = compareRaplicaList(pid, sysReplicas, solrReplicas);
+                               if(equal) {
+                                   //3.3.2.1
+                                   logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                                           " having the same modification date as the SOLR server. Also both have the same replica list. So this event has been filtered out for indexing (no indexing).");
+                                  needFilterOut = true;
+                               } else {
+                                   //3.3.2.2
+                                   logger.info("HZEventFilter.filter - the system metadata for the index event shows "+pid.getValue()+
+                                           " having the same modification date as the SOLR server. However, they have different replica lists. So this event should be granted for indexing.");
+                                   needFilterOut = false;
+                               }
                            }
-                       }
-                      
+                          
+                        }
                     }
                 }
             } catch (Exception e) {
-                logger.warn("HZEventFilter.filter - there was an exception in comparing the solr record for "+pid.getValue()+
-                        " to its system metadata. However, this event still should be granted for indexing for safe.", e);
+                logger.warn("HZEventFilter.filter - there was an exception in applying the index event filters for "+pid.getValue()+
+                        ". However, this index event still should be granted for indexing for safe.", e);
                 needFilterOut = false;
             }
         } else {
@@ -194,6 +201,33 @@ public class HZEventFilter {
         if(client != null) {
             client.close();
         }
+    }
+    
+    /**
+     * This method will filter out an object whose modification date is more than 30 days old. 
+     * 30 days is the default value and configurable. If it is negative value, this filter will be ignored.
+     * @param sysmeta the system meta data of the object
+     * @return true if the index event should be ignored; otherwise false.
+     */
+    private boolean fliterOutOldObject(SystemMetadata sysmeta) {
+        boolean needFilterOut = false;
+        BigInteger defaultValue = new BigInteger("2592000000");//30 days in milliseconds
+        BigInteger maxAge  = Settings.getConfiguration().getBigInteger(INDEX_EVENT_FILTERING_IGNORE_MODIFIEDTIME_AGE,  defaultValue);
+        if(maxAge.longValue() >=0 ) {
+            Long currentTime = System.currentTimeMillis();
+            Date modifiedDate =sysmeta.getDateSysMetadataModified();
+            if( (currentTime.longValue() - modifiedDate.getTime()) > maxAge.longValue()) {
+                logger.info("HZEventFilter.fliterOldObject - The modifiction date the object has been more than "+ maxAge.longValue()+" milliseconds old. So the index event for "+sysmeta.getIdentifier().getValue()+" has been filtered out (no indexing)");
+                needFilterOut = true;
+            } else {
+                logger.info("HZEventFilter.fliterOldObject - The modifiction date the object has been less than "+ maxAge.longValue()+" milliseconds old. So the index event for "+sysmeta.getIdentifier().getValue()+" should be granted for indexing by this time filter. But it maybe will be filtered out by other filters.");
+                needFilterOut = false;
+            }
+        } else {
+            logger.info("HZEventFilter.fliterOldObject - The max age of the modification "+ maxAge.longValue()+" is less than 0. The time filter is disabled. So the index event "+sysmeta.getIdentifier().getValue()+" should be granted for indexing. But it maybe will be filtered out by other filters.");
+            needFilterOut = false;
+        }
+        return needFilterOut;
     }
     
     /**

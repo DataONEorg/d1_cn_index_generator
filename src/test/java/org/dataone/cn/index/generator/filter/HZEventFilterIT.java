@@ -161,9 +161,8 @@ public class HZEventFilterIT {
         HZEventFilter filter = new HZEventFilter();
         Assert.assertTrue(filter.filter(sysmeta));
         
-        //a newer (bigger) modification date, we should grant it
-        String newModificationDate = "2017-09-07T20:58:57.294Z";
-        sysmeta.setDateSysMetadataModified(isoFormatter.parse(newModificationDate));
+        //a newer modification date, we should grant it
+        sysmeta.setDateSysMetadataModified(new Date());
         Assert.assertTrue(!filter.filter(sysmeta));
         
         // an older (smaller) modification date, we should filter out.
@@ -175,11 +174,15 @@ public class HZEventFilterIT {
         replicas.remove(6);
         Assert.assertTrue(filter.filter(sysmeta));
         
-        //set back the original modification date, but we remove a replica. So the index should be granted
+        //set back the original modification date, but we remove a replica. But it is to old, so the index should not be granted
         sysmeta.setDateSysMetadataModified(isoFormatter.parse(sysModificationDate));
+        Assert.assertTrue(filter.filter(sysmeta));
+        //set a new modification date, but we remove a replica. So the index should be granted
+        sysmeta.setDateSysMetadataModified(new Date());
         Assert.assertTrue(!filter.filter(sysmeta));
         
         //has the same mofication date, but a replica has different verification date
+        sysmeta.setDateSysMetadataModified(isoFormatter.parse(sysModificationDate));
         Replica replicaMN8 = new Replica();
         NodeReference node8 = new NodeReference();
         node8.setValue(replica5);
@@ -187,9 +190,10 @@ public class HZEventFilterIT {
         String vDate8= "2017-10-10T05:50:26.686Z";
         replicaMN8.setReplicaVerified(isoFormatter.parse(vDate8));
         replicas.add(replicaMN8);
-        Assert.assertTrue(!filter.filter(sysmeta));
+        Assert.assertTrue(filter.filter(sysmeta));
         
         //change to a replica with another name.
+        sysmeta.setDateSysMetadataModified(new Date());
         replicas.remove(6);
         Replica replicaMN9 = new Replica();
         NodeReference node9 = new NodeReference();
@@ -207,9 +211,11 @@ public class HZEventFilterIT {
         SystemMetadata sysmeta = new SystemMetadata();
         //id
         Identifier pid = new Identifier();
+        Date date = new Date();
         pid.setValue(id);
         sysmeta.setIdentifier(pid);
         sysmeta.setArchived(true);
+        sysmeta.setDateSysMetadataModified(date);
         //compare - it should return true (not index) since there is solr document and the archive is true, in the system metadata.
         HZEventFilter filter = new HZEventFilter();
         Assert.assertTrue(filter.filter(sysmeta));
@@ -218,6 +224,14 @@ public class HZEventFilterIT {
         sysmeta.setArchived(false);
         Assert.assertTrue(!filter.filter(sysmeta));
         filter.closeSolrClient();
+        
+        //change the date of modification to be an old one. So we should filter it out (no indexing)
+        long dateValue = date.getTime();
+        dateValue = dateValue - 500000000;
+        date = new Date(dateValue);
+        sysmeta.setDateSysMetadataModified(date);
+        sysmeta.setArchived(false);
+        Assert.assertTrue(filter.filter(sysmeta));
     }
 
 }
