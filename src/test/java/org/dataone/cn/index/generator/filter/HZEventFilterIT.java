@@ -76,7 +76,7 @@ public class HZEventFilterIT {
         
     }
     
-    @Test
+    
     public void testFilter() throws Exception {
         //Info maually read from solr doc
         String id = "doi:10.18739/A2J32X";
@@ -208,30 +208,23 @@ public class HZEventFilterIT {
     @Test
     public void testFilterArchivedIndex() throws Exception {
         String id = "fake_id_hello"; //this is fake id and there is no solr document
+        String ISO_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX";
+        SimpleDateFormat isoFormatter = new SimpleDateFormat(ISO_FORMAT);
         SystemMetadata sysmeta = new SystemMetadata();
         //id
         Identifier pid = new Identifier();
-        Date date = new Date();
+        String vDate6= "2018-10-5T05:50:26.686Z";
         pid.setValue(id);
         sysmeta.setIdentifier(pid);
-        sysmeta.setArchived(true);
-        sysmeta.setDateSysMetadataModified(date);
+        sysmeta.setDateSysMetadataModified(isoFormatter.parse(vDate6));
         //compare - it should return true (not index) since there is solr document and the archive is true, in the system metadata.
         HZEventFilter filter = new HZEventFilter();
-        Assert.assertTrue(filter.filter(sysmeta));
+        Assert.assertTrue(!filter.fliterOutOldObject(sysmeta));
         
-        //we set archive to false (this is not actually setting to the hazelcast), so we should grant the index task since the archive is false, but no solr document
-        sysmeta.setArchived(false);
-        Assert.assertTrue(!filter.filter(sysmeta));
-        filter.closeSolrClient();
-        
-        //change the date of modification to be an old one. So we should filter it out (no indexing)
-        long dateValue = date.getTime();
-        dateValue = dateValue - 500000000;
-        date = new Date(dateValue);
-        sysmeta.setDateSysMetadataModified(date);
-        sysmeta.setArchived(false);
-        Assert.assertTrue(filter.filter(sysmeta));
+        //change the date of modification to be an old one. So we should filter it out (no indexing
+        String vDate8= "2018-8-10T05:50:26.686Z";
+        sysmeta.setDateSysMetadataModified(isoFormatter.parse(vDate8));
+        Assert.assertTrue(filter.fliterOutOldObject(sysmeta));
     }
 
 }
