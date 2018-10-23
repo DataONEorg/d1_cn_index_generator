@@ -24,6 +24,7 @@ package org.dataone.cn.index.test;
 
 import static org.junit.Assert.fail;
 
+import java.util.Date;
 import java.util.List;
 
 import junit.framework.Assert;
@@ -109,6 +110,7 @@ public class IndexTaskGeneratorEntryListenerTest {
         try {
             sysmeta = TypeMarshaller.unmarshalTypeFromStream(SystemMetadata.class,
                     systemMetadataResource.getInputStream());
+            sysmeta.setDateSysMetadataModified(new Date());
         } catch (Exception ex) {
             logger.error(ex.getMessage(), ex);
             fail("Test SystemMetadata misconfiguration - Exception " + ex);
@@ -128,6 +130,7 @@ public class IndexTaskGeneratorEntryListenerTest {
             } catch (InterruptedException e) {
                 logger.error(e.getMessage(), e);
             }
+            //System.out.println("The size of repo is==========================="+repo.findByPid(sysmeta.getIdentifier().getValue()).size());
             Assert.assertTrue("repo size after add should be 1.",
                     repo.findByPid(sysmeta.getIdentifier().getValue()).size() == 1);
         }
