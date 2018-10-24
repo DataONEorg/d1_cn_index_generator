@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!-- Apache Commons Configuration -->
 <configuration>
+    <header>
+        <result delimiterParsingDisabled="true" forceReloadCheck="true" />
+    </header>
 	<properties fileName="index-generator.properties"/>
 	<properties fileName="file:/etc/dataone/index/d1client.properties" />
 	 <!-- Some specific properties for CNs -->
