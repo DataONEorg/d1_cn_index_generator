@@ -33,6 +33,7 @@ import org.dataone.cn.index.generator.IndexTaskGeneratorEntryListener;
 import org.dataone.cn.index.task.IndexTask;
 import org.dataone.cn.index.task.IndexTaskRepository;
 import org.dataone.configuration.Settings;
+import org.dataone.exceptions.MarshallingException;
 import org.dataone.service.types.v1.Identifier;
 import org.dataone.service.types.v2.SystemMetadata;
 import org.dataone.service.util.TypeMarshaller;
@@ -102,7 +103,7 @@ public class IndexTaskGeneratorEntryListenerTest {
     }
 
     @Test
-    public void testIndexTaskGeneration() {
+    public void testIndexTaskGeneration() throws MarshallingException {
 
         // create a new SystemMetadata object for testing
         SystemMetadata sysmeta = null;

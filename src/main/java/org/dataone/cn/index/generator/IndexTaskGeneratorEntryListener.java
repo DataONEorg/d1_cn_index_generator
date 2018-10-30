@@ -105,8 +105,9 @@ public class IndexTaskGeneratorEntryListener implements EntryListener<Identifier
             logger.info("ADD EVENT - index task generator - system metadata callback invoked on pid: "
                     + event.getKey().getValue());
             SystemMetadata smd = event.getValue();
+            // TODO: can we assume that serialVersion greater than 1 makes an invalid add?
             if (smd.getSerialVersion().longValue() > 1) {
-                logger.info("Add event for pid: " + event.getKey().getValue()
+                logger.warn("Add event for pid: " + event.getKey().getValue()
                         + " determined to be invalid due to serial version: "
                         + smd.getSerialVersion().longValue() + ".  skipping add index task.");
             } else {
